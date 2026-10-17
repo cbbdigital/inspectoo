@@ -130,18 +130,18 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .chip.info{color:var(--accent);background:var(--accent-soft)}
 
 /* Next-up hero card */
-.next{background:var(--nav);color:var(--nav-fg);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;gap:14px;align-items:center}
+.next{background:var(--accent-soft);color:var(--fg);border:1px solid var(--accent);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;gap:14px;align-items:center}
 .next-main{flex:1;min-width:0}
 .next-acts{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}
 .next-acts .btn{min-height:40px;padding:9px 16px;white-space:nowrap}
-.next .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--nav-muted);font-weight:700}
+.next .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
 .next .big{font-family:var(--font-d);font-weight:800;font-size:20px;margin-top:8px;display:flex;align-items:center;gap:10px}
-.next .meta{color:var(--nav-muted);font-size:13px;margin-top:4px}
+.next .meta{color:var(--muted);font-size:13px;margin-top:4px}
 .next .acts{display:flex;gap:10px;margin-top:14px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:14px;border-radius:13px;padding:12px 16px;min-height:46px}
 .btn:active{transform:scale(.97)}
 .btn.primary{background:var(--accent);color:var(--accent-ink)}
-.btn.ghost{background:rgba(255,255,255,.1);color:var(--nav-fg)}
+.btn.ghost{background:var(--surface);border:1px solid var(--line);color:var(--fg)}
 .btn.soft{background:var(--surface-2);color:var(--fg);border:1px solid var(--line)}
 .btn.full{width:100%}
 .btn.ok{background:var(--ok);color:#fff}
