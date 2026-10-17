@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA / single-page: orice rută -> index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Variabile necesare (setează-le în Netlify → Site settings → Environment variables):
+#   VITE_SUPABASE_URL        = https://<proiectul-tau>.supabase.co
+#   VITE_SUPABASE_ANON_KEY   = <cheia anon / public>
