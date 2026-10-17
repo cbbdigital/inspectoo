@@ -96,6 +96,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .statbar i{width:1px;height:22px;background:var(--line);flex:0 0 auto}
 .statbar .accent b{color:var(--accent)}
 .statbar .ok b{color:var(--ok)}
+.statbar-side{display:none}
 .bar{height:9px;border-radius:999px;background:var(--surface-2);overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:999px;background:var(--accent)}
 
@@ -304,6 +305,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   .calgrid .dcell{aspect-ratio:auto;height:56px}
   .azi-cols{display:grid;grid-template-columns:1.7fr 1fr;grid-template-areas:"list side";gap:18px;align-items:start}
   .azi-list{grid-area:list}.azi-side{grid-area:side}
+  .statbar-top{display:none}
+  .azi-side .statbar-side{display:flex;margin-bottom:12px;padding:7px 2px}
+  .azi-side .statbar-side b{font-size:15px}
+  .azi-side .statbar-side>span{font-size:11px;gap:5px}
+  .azi-side .statbar-side i{height:16px}
   .azi-side .qa{grid-template-columns:1fr;gap:8px}
   .azi-side .qa button{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;font-size:14px;font-weight:700}
   .azi-side .qa .ico{width:36px;height:36px;flex:0 0 auto}
@@ -566,7 +572,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     var d=new Date();var zile=['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
     var h=''
       +'<div class="azihead"><div><div class="scr-title" style="font-size:24px">Programul zilei</div></div>'
-      +'<div class="statbar"><span class="accent"><b>'+today.length+'</b>azi</span><i></i><span class="ok"><b>'+done+'</b>gata</span><i></i><span><b>'+pend+'</b>rămase</span></div></div>';
+      +'<div class="statbar statbar-top"><span class="accent"><b>'+today.length+'</b>azi</span><i></i><span class="ok"><b>'+done+'</b>gata</span><i></i><span><b>'+pend+'</b>rămase</span></div></div>';
+    var statSide='<div class="statbar statbar-side"><span class="accent"><b>'+today.length+'</b>azi</span><i></i><span class="ok"><b>'+done+'</b>gata</span><i></i><span><b>'+pend+'</b>rămase</span></div>';
     if(next){
       h+='<div class="next"><div class="next-main"><div class="k">Programări</div>'
         +'<div class="big">'+svg('clock',18)+next.time+' · '+esc(next.nm)+'</div>'
@@ -575,7 +582,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         +'<button class="btn ghost" data-appt="'+next.id+'">Detalii</button></div></div>';
     }
     h+='<div class="azi-cols">'
-      +'<div class="azi-side"><div class="eyebrow" style="margin:0 2px 8px">Acțiuni rapide</div>'
+      +'<div class="azi-side">'+statSide+'<div class="eyebrow" style="margin:0 2px 8px">Acțiuni rapide</div>'
         +'<div class="qa">'
         +'<button data-sheet="new"><span class="ico">'+svg('plus',20)+'</span>Programare</button>'
         +'<button data-sheet="photos"><span class="ico">'+svg('cam',20)+'</span>Fotografii</button>'
