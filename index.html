@@ -269,7 +269,23 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .ph-group{margin-top:14px}
 .ph-cap{display:flex;align-items:center;gap:8px;font-size:12px;margin:0 2px 8px}
 .ph-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.ph-th{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.ph-th{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block;cursor:pointer}
+.ph-th:active{transform:scale(.97)}
+.editov{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;flex-direction:column}
+.edit-top{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--hd);color:var(--hd-fg)}
+.edit-title{flex:1;font-family:var(--font-d);font-weight:800;font-size:16px}
+.edit-x{width:38px;height:38px;border-radius:11px;background:var(--hd-btn);display:grid;place-items:center;color:var(--hd-fg)}
+.edit-x svg{transform:rotate(180deg)}
+.edit-stage{flex:1;display:grid;place-items:center;overflow:hidden;padding:14px;background:var(--surface-2);min-height:0}
+.edit-wrap{position:relative;max-width:100%;max-height:100%;line-height:0}
+.edit-wrap #edCanvas{display:block;max-width:100%;max-height:100%;border-radius:10px;box-shadow:var(--shadow);touch-action:none;cursor:crosshair}
+.edit-ovl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:10px}
+.edit-tools{padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--app);display:flex;flex-direction:column;gap:12px}
+.edit-row{display:flex;align-items:center;gap:12px}
+.edit-row input[type=range]{flex:1;accent-color:var(--accent)}
+.edit-actions{display:flex;gap:10px}
+.edit-actions .btn{flex:1}
+.edit-hint{font-size:12px;color:var(--muted);text-align:center;min-height:14px}
 
 /* Toast */
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);transform:translateX(-50%) translateY(14px);
@@ -590,7 +606,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         +'<button data-sheet="myclients"><span class="ico">'+svg('users',20)+'</span>Clienții mei</button>'
         +'</div></div>'
       +'<div class="azi-list"><div class="eyebrow azi-listh" style="margin:0 2px 8px;display:flex;justify-content:space-between;align-items:center"><span>Programările de azi</span><span class="muted" style="font-size:12px">'+today.length+'</span></div>'
-        +'<div class="card">'+(today.length?today.map(apptRow).join(''):'<div class="card-pad center muted" style="font-size:13px">Nicio programare azi</div>')+'</div></div>'
+        +(today.length?'<div class="card">'+today.map(apptRow).join('')+'</div>':'<div class="empty" style="border:1px dashed var(--line);border-radius:var(--r);padding:28px 16px">'+svg('cal',24)+'<div style="font-size:13px">Nicio programare azi</div></div>')+'</div>'
       +'</div>';
     return h;
   }
@@ -1021,6 +1037,84 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     try{var blob=await zip.generateAsync({type:'blob'});await dlSave('inspectii_'+phFrom+'_'+phTo+'.zip',blob);}
     catch(e){toast('Descărcare anulată')}
   }
+  function openPhotoEditor(si, ii){
+    var set=S.savedPhotos[si]; if(!set||!set.imgs||!set.imgs[ii])return;
+    var origURL=set.imgs[ii];
+    var ov=document.createElement('div'); ov.className='editov';
+    ov.innerHTML=''
+      +'<div class="edit-top"><button class="edit-x" data-ex="1" aria-label="Închide">'+svg('chev',20)+'</button>'
+      +'<div class="edit-title">Editor foto</div>'
+      +'<button class="btn primary" style="width:auto;padding:10px 16px" data-esave="1">'+svg('check',16)+'Salvează</button></div>'
+      +'<div class="edit-stage"><div class="edit-wrap" id="edWrap"><canvas id="edCanvas"></canvas><canvas id="edOverlay" class="edit-ovl"></canvas></div></div>'
+      +'<div class="edit-tools">'
+      +'<div class="seg" id="edSeg"><button data-etool="heal" aria-selected="true">Reparare</button><button data-etool="clone" aria-selected="false">Clonare</button></div>'
+      +'<div class="edit-row"><span class="muted" style="font-size:12px;min-width:52px">Pensulă</span><input type="range" id="edSize" min="6" max="70" value="22"></div>'
+      +'<div class="edit-actions"><button class="btn soft" data-esrc="1" style="display:none">Setează sursă</button><button class="btn soft" data-eundo="1">Înapoi</button><button class="btn soft" data-ereset="1">Resetează</button></div>'
+      +'<div class="edit-row" style="justify-content:center;gap:8px"><button class="btn soft" data-ezoom="out" style="flex:0 0 auto;width:46px;font-size:20px">−</button><button class="btn soft" id="edZoom" data-ezoom="reset" style="flex:0 0 auto;min-width:68px">100%</button><button class="btn soft" data-ezoom="in" style="flex:0 0 auto;width:46px;font-size:20px">+</button></div>'
+      +'<div class="edit-hint" id="edHint">Atinge defectul ca să-l elimini. Zoom: pinch / scroll / butoane.</div>'
+      +'</div>';
+    document.body.appendChild(ov);
+    var cv=ov.querySelector('#edCanvas'), ctx=cv.getContext('2d');
+    var oc=ov.querySelector('#edOverlay'), octx=oc.getContext('2d'), hover=null, showSize=false, sizeTimer=null;
+    var tool='heal', brush=22, undo=[], source=null, pickingSrc=false, snap=null, drawing=false, cloneOff=null;
+    var zoom=1, panX=0, panY=0, ptrs=new Map(), gesture=false, gLock=false, prevDist=0, prevMid=null;
+    var img=new Image();
+    img.onload=function(){var cap=1600,w=img.naturalWidth,h=img.naturalHeight,sc=Math.min(1,cap/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);oc.width=cv.width;oc.height=cv.height;ctx.drawImage(img,0,0,cv.width,cv.height);applyT();};
+    img.src=origURL;
+    function hint(t){var e=ov.querySelector('#edHint');if(e)e.textContent=t;}
+    function sc(){var r=cv.getBoundingClientRect();return r.width?cv.width/r.width:1;}
+    function pt(e){var r=cv.getBoundingClientRect();var s=r.width?cv.width/r.width:1;return {x:(e.clientX-r.left)*s,y:(e.clientY-r.top)*s};}
+    function rad(){return Math.max(3,brush*sc());}
+    function pushUndo(){try{undo.push(ctx.getImageData(0,0,cv.width,cv.height));if(undo.length>12)undo.shift();}catch(_){}}
+    function clamp255(v){return v<0?0:v>255?255:v;}
+    function dab(sx,sy,dx,dy,r){var d=Math.max(3,Math.round(r*2));var t=document.createElement('canvas');t.width=d;t.height=d;var tc=t.getContext('2d');tc.drawImage(snap,sx-r,sy-r,d,d,0,0,d,d);tc.globalCompositeOperation='destination-in';var g=tc.createRadialGradient(d/2,d/2,0,d/2,d/2,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.5,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)');tc.fillStyle=g;tc.fillRect(0,0,d,d);ctx.drawImage(t,dx-r,dy-r);}
+    function healDab(sx,sy,dx,dy,r){
+      var d=Math.max(3,Math.round(r*2)),cx=d/2,cy=d/2,scx=snap.getContext('2d'),src,dst;
+      try{src=scx.getImageData(Math.round(sx-r),Math.round(sy-r),d,d);dst=scx.getImageData(Math.round(dx-r),Math.round(dy-r),d,d);}catch(_){dab(sx,sy,dx,dy,r);return;}
+      var sp=src.data,dp=dst.data,sR=0,sG=0,sB=0,sN=0,rR=0,rG=0,rB=0,rN=0,x,y,i,dist;
+      for(y=0;y<d;y++)for(x=0;x<d;x++){dist=Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy));i=(y*d+x)*4;if(dist<=r){sR+=sp[i];sG+=sp[i+1];sB+=sp[i+2];sN++;}if(dist>=r*0.7&&dist<=r){rR+=dp[i];rG+=dp[i+1];rB+=dp[i+2];rN++;}}
+      if(sN){sR/=sN;sG/=sN;sB/=sN;}if(rN){rR/=rN;rG/=rN;rB/=rN;}
+      var dR=rR-sR,dG=rG-sG,dB=rB-sB,a,t2;
+      for(y=0;y<d;y++)for(x=0;x<d;x++){dist=Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy));i=(y*d+x)*4;sp[i]=clamp255(sp[i]+dR);sp[i+1]=clamp255(sp[i+1]+dG);sp[i+2]=clamp255(sp[i+2]+dB);if(dist>=r){a=0;}else{t2=dist/r;a=Math.pow(1-t2,1.8);}sp[i+3]=Math.round(255*a);}
+      var tcv=document.createElement('canvas');tcv.width=d;tcv.height=d;tcv.getContext('2d').putImageData(src,0,0);ctx.drawImage(tcv,Math.round(dx-r),Math.round(dy-r));
+    }
+    function healSrc(x,y,r){var W=cv.width,H=cv.height,D=r*2.4,c=[[0,-D],[-D,0],[D,0],[0,D],[-D,-D],[D,-D],[-D,D],[D,D]];for(var i=0;i<c.length;i++){var sx=x+c[i][0],sy=y+c[i][1];if(sx-r>=0&&sy-r>=0&&sx+r<=W&&sy+r<=H)return[sx,sy];}return[Math.min(W-r,Math.max(r,x)),Math.min(H-r,Math.max(r,y))];}
+    function stroke(p,r){if(tool==='heal'){var s=healSrc(p.x,p.y,r);healDab(s[0],s[1],p.x,p.y,r);}else{dab(p.x+cloneOff[0],p.y+cloneOff[1],p.x,p.y,r);}}
+    function applyT(){var w=ov.querySelector('#edWrap');if(w)w.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';var z=ov.querySelector('#edZoom');if(z)z.textContent=Math.round(zoom*100)+'%';drawOverlay();}
+    function previewPatch(cxr,cyr,sxr,syr,r){var d=Math.max(3,Math.round(r*2));var t=document.createElement('canvas');t.width=d;t.height=d;var tc=t.getContext('2d');tc.drawImage(cv,sxr-r,syr-r,d,d,0,0,d,d);tc.globalCompositeOperation='destination-in';var g=tc.createRadialGradient(d/2,d/2,0,d/2,d/2,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.6,'rgba(0,0,0,.85)');g.addColorStop(1,'rgba(0,0,0,0)');tc.fillStyle=g;tc.fillRect(0,0,d,d);octx.drawImage(t,cxr-r,cyr-r);}
+    function drawOverlay(){if(!oc||!oc.width)return;octx.clearRect(0,0,oc.width,oc.height);var r=rad();
+      if(tool==='clone'&&source){
+        var off=cloneOff||(hover?[source[0]-hover.x,source[1]-hover.y]:[0,0]);
+        var smp=hover?[hover.x+off[0],hover.y+off[1]]:[source[0],source[1]];
+        if(hover){previewPatch(hover.x,hover.y,smp[0],smp[1],r);octx.save();octx.strokeStyle='rgba(255,255,255,.5)';octx.lineWidth=Math.max(1,r*0.05);octx.setLineDash([3,3]);octx.beginPath();octx.moveTo(smp[0],smp[1]);octx.lineTo(hover.x,hover.y);octx.stroke();octx.restore();}
+        octx.save();octx.lineWidth=Math.max(2,r*0.12);octx.strokeStyle='rgba(92,139,255,.95)';octx.setLineDash([Math.max(4,r*0.4),Math.max(3,r*0.3)]);octx.beginPath();octx.arc(smp[0],smp[1],r,0,7);octx.stroke();octx.setLineDash([]);octx.beginPath();octx.moveTo(smp[0]-r*0.5,smp[1]);octx.lineTo(smp[0]+r*0.5,smp[1]);octx.moveTo(smp[0],smp[1]-r*0.5);octx.lineTo(smp[0],smp[1]+r*0.5);octx.stroke();octx.restore();
+      }
+      var hp=hover||(showSize?{x:cv.width/2,y:cv.height/2}:null);
+      if(hp){octx.save();octx.strokeStyle='rgba(0,0,0,.45)';octx.lineWidth=Math.max(1,r*0.05);octx.beginPath();octx.arc(hp.x,hp.y,r+1,0,7);octx.stroke();octx.strokeStyle='rgba(255,255,255,.95)';octx.lineWidth=Math.max(1.5,r*0.08);octx.beginPath();octx.arc(hp.x,hp.y,r,0,7);octx.stroke();octx.restore();}
+    }
+    function rct(){return cv.getBoundingClientRect();}
+    function contentAt(X,Y){var r=rct();return {x:(X-r.left)*cv.width/r.width,y:(Y-r.top)*cv.height/r.height};}
+    function zoomTo(nz,fx,fy){nz=Math.max(1,Math.min(8,nz));var C=contentAt(fx,fy);zoom=nz;applyT();var r=rct();panX+=fx-(r.left+C.x*r.width/cv.width);panY+=fy-(r.top+C.y*r.height/cv.height);if(zoom<=1){zoom=1;panX=0;panY=0;}applyT();}
+    function startPaint(e){var p=pt(e),r=rad();if(tool==='clone'&&pickingSrc){source=[p.x,p.y];cloneOff=null;pickingSrc=false;hint('Sursă setată. Acum pictează — sursa urmează pensula.');return;}if(tool==='clone'&&!source){hint('Întâi apasă „Setează sursă", apoi atinge o zonă curată.');return;}pushUndo();snap=document.createElement('canvas');snap.width=cv.width;snap.height=cv.height;snap.getContext('2d').drawImage(cv,0,0);drawing=true;if(tool==='clone'&&!cloneOff)cloneOff=[source[0]-p.x,source[1]-p.y];stroke(p,r);}
+    function cancelPaint(){if(drawing){if(undo.length)ctx.putImageData(undo.pop(),0,0);drawing=false;}}
+    cv.addEventListener('pointerdown',function(e){e.preventDefault();ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size>=2){cancelPaint();gesture=true;gLock=true;hover=null;var a=Array.from(ptrs.values());prevDist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);prevMid={x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2};}else if(ptrs.size===1&&!gLock){hover=pt(e);startPaint(e);}drawOverlay();});
+    cv.addEventListener('pointermove',function(e){if(!ptrs.has(e.pointerId)){if(!gesture){hover=pt(e);drawOverlay();}return;}e.preventDefault();ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gesture&&ptrs.size>=2){var a=Array.from(ptrs.values());var d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);var mid={x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2};var f=prevDist?d/prevDist:1;var C=contentAt(prevMid.x,prevMid.y);zoom=Math.max(1,Math.min(8,zoom*f));applyT();var r=rct();panX+=mid.x-(r.left+C.x*r.width/cv.width);panY+=mid.y-(r.top+C.y*r.height/cv.height);if(zoom<=1){zoom=1;panX=0;panY=0;}applyT();prevDist=d;prevMid=mid;}else if(drawing&&ptrs.size===1){hover=pt(e);stroke(pt(e),rad());drawOverlay();}});
+    function endPtr(e){if(ptrs.has(e.pointerId))ptrs.delete(e.pointerId);if(ptrs.size<2)gesture=false;if(ptrs.size===0){drawing=false;gLock=false;}if(e.pointerType==='touch')hover=null;drawOverlay();}
+    cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);window.addEventListener('pointerup',endPtr);
+    cv.addEventListener('pointerleave',function(){if(!drawing){hover=null;drawOverlay();}});
+    cv.addEventListener('wheel',function(e){e.preventDefault();zoomTo(zoom*(e.deltaY<0?1.15:1/1.15),e.clientX,e.clientY);},{passive:false});
+    function cleanup(){window.removeEventListener('pointerup',endPtr);ov.remove();}
+    ov.addEventListener('click',function(e){var b=e.target.closest('[data-ex],[data-esave],[data-etool],[data-eundo],[data-ereset],[data-esrc],[data-ezoom]');if(!b)return;
+      if(b.hasAttribute('data-ezoom')){var st=ov.querySelector('.edit-stage').getBoundingClientRect();var cx=st.left+st.width/2,cy=st.top+st.height/2;var zz=b.getAttribute('data-ezoom');if(zz==='in')zoomTo(zoom*1.3,cx,cy);else if(zz==='out')zoomTo(zoom/1.3,cx,cy);else{zoom=1;panX=0;panY=0;applyT();}return;}
+      if(b.hasAttribute('data-ex')){cleanup();return;}
+      if(b.hasAttribute('data-esave')){set.imgs[ii]=cv.toDataURL('image/jpeg',0.9);set.n=set.imgs.length;cleanup();renderPhotos();toast('Fotografie salvată','check');return;}
+      if(b.hasAttribute('data-etool')){tool=b.getAttribute('data-etool');ov.querySelectorAll('#edSeg button').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false')});ov.querySelector('[data-esrc]').style.display=(tool==='clone')?'':'none';source=null;cloneOff=null;pickingSrc=false;hint(tool==='heal'?'Atinge defectul ca să-l elimini.':'Apasă „Setează sursă", apoi atinge o zonă curată.');drawOverlay();return;}
+      if(b.hasAttribute('data-esrc')){pickingSrc=true;hint('Atinge o zonă curată pentru sursă.');return;}
+      if(b.hasAttribute('data-eundo')){if(undo.length)ctx.putImageData(undo.pop(),0,0);return;}
+      if(b.hasAttribute('data-ereset')){pushUndo();var im=new Image();im.onload=function(){ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(im,0,0,cv.width,cv.height);};im.src=origURL;return;}
+    });
+    var szr=ov.querySelector('#edSize');szr.addEventListener('input',function(){brush=+szr.value;showSize=true;if(sizeTimer)clearTimeout(sizeTimer);sizeTimer=setTimeout(function(){showSize=false;drawOverlay();},1000);drawOverlay();});
+  }
   function renderPhotos(){
     var grid='<div class="shotgrid">';
     shots.forEach(function(s,i){grid+='<div class="shot"><img src="'+s+'" alt=""><button class="rm" data-rmshot="'+i+'" aria-label="Șterge">&times;</button></div>'});
@@ -1030,9 +1124,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     var total=inr.reduce(function(a,s){return a+setCount(s)},0);
     var saved='<div class="sec-h" style="margin:14px 2px 8px"><h2 style="font-size:15px">'+inr.length+' inspecții · '+total+' poze</h2></div>';
     if(inr.length){
-      saved+=inr.map(function(s){ensureImgs(s);
+      saved+=inr.map(function(s){ensureImgs(s);var si=S.savedPhotos.indexOf(s);
         return '<div class="ph-group"><div class="ph-cap">'+platEU(s.plate)+'<span class="muted">'+fmtDate(s.date)+'</span></div>'
-          +'<div class="ph-thumbs">'+s.imgs.map(function(u){return '<img class="ph-th" src="'+u+'" alt="">'}).join('')+'</div></div>';
+          +'<div class="ph-thumbs">'+s.imgs.map(function(u,ii){return '<img class="ph-th" data-editphoto="'+si+'-'+ii+'" src="'+u+'" alt="">'}).join('')+'</div></div>';
       }).join('')
       +'<button class="btn soft full" style="margin-top:16px" data-dlall="1">'+svg('down',18)+'Descarcă toate ('+total+')</button>';
     } else {
@@ -1250,7 +1344,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
   /* ---- global clicks ---- */
   document.addEventListener('click',function(e){
-    var el=e.target.closest('[data-tab],[data-sheet],[data-appt],[data-client],[data-start],[data-result],[data-setres],[data-dlall],[data-capture],[data-addshot],[data-rmshot],[data-savecap],[data-ocrshot],[data-ocrclear],[data-ocrreset],[data-ocrmode],[data-copyfield],[data-copyinp],[data-mcadd],[data-xltmpl],[data-xlpick],[data-xlexport],[data-delclient],[data-day],[data-cal],[data-addon],[data-savappt],[data-adminopen],[data-adminback],[data-adm],[data-inspector],[data-delinsp],[data-savinsp],[data-doc],[data-plan],[data-copy],[data-sms],[data-remind],[data-toast]');
+    var el=e.target.closest('[data-tab],[data-sheet],[data-appt],[data-client],[data-start],[data-result],[data-setres],[data-dlall],[data-capture],[data-addshot],[data-rmshot],[data-savecap],[data-editphoto],[data-ocrshot],[data-ocrclear],[data-ocrreset],[data-ocrmode],[data-copyfield],[data-copyinp],[data-mcadd],[data-xltmpl],[data-xlpick],[data-xlexport],[data-delclient],[data-day],[data-cal],[data-addon],[data-savappt],[data-adminopen],[data-adminback],[data-adm],[data-inspector],[data-delinsp],[data-savinsp],[data-doc],[data-plan],[data-copy],[data-sms],[data-remind],[data-toast]');
     if(!el)return;
     if(el.hasAttribute('data-tab')){S.adminOpen=false;S.tab=el.getAttribute('data-tab');closeSheet();render();window.scrollTo(0,0);return}
     if(el.hasAttribute('data-adminopen')){S.adminOpen=true;S.adminTab='overview';render();window.scrollTo(0,0);return}
@@ -1280,6 +1374,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(el.hasAttribute('data-sms')){toast('SMS pregătit (demo)','sms');return}
     if(el.hasAttribute('data-remind')){closeSheet();toast('Reminder ITP trimis','sms');return}
     if(el.hasAttribute('data-dlall')){downloadAll();return}
+    if(el.hasAttribute('data-editphoto')){var ep=el.getAttribute('data-editphoto').split('-');openPhotoEditor(+ep[0],+ep[1]);return}
     if(el.hasAttribute('data-addshot')){var ci=$('#fileCam');if(ci)ci.click();return}
     if(el.hasAttribute('data-ocrshot')){S.ocr.target=el.getAttribute('data-ocrshot');var oi=$('#fileOcr');if(oi)oi.click();return}
     if(el.hasAttribute('data-ocrclear')){var k=el.getAttribute('data-ocrclear');S.ocr[k+'Img']='';S.ocr[k]='';S.ocr[k+'Src']='';S.ocr[k+'Busy']=false;S.ocr[k+'Copied']=false;S.ocr.err='';renderOcr();return}
