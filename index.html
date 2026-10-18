@@ -280,7 +280,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .edit-wrap{position:relative;max-width:100%;max-height:100%;line-height:0}
 .edit-wrap #edCanvas{display:block;max-width:100%;max-height:100%;border-radius:10px;box-shadow:var(--shadow);touch-action:none;cursor:crosshair}
 .edit-ovl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:10px}
+.edit-body{flex:1;display:flex;flex-direction:column;min-height:0}
 .edit-tools{padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--app);display:flex;flex-direction:column;gap:12px}
+@media(min-width:860px){
+  .edit-body{flex-direction:row}
+  .edit-tools{width:320px;flex:0 0 320px;border-top:none;border-left:1px solid var(--line);overflow:auto;justify-content:center}
+  .edit-stage{padding:24px}
+}
 .edit-row{display:flex;align-items:center;gap:12px}
 .edit-row input[type=range]{flex:1;accent-color:var(--accent)}
 .edit-actions{display:flex;gap:10px}
@@ -1045,6 +1051,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       +'<div class="edit-top"><button class="edit-x" data-ex="1" aria-label="Închide">'+svg('chev',20)+'</button>'
       +'<div class="edit-title">Editor foto</div>'
       +'<button class="btn primary" style="width:auto;padding:10px 16px" data-esave="1">'+svg('check',16)+'Salvează</button></div>'
+      +'<div class="edit-body">'
       +'<div class="edit-stage"><div class="edit-wrap" id="edWrap"><canvas id="edCanvas"></canvas><canvas id="edOverlay" class="edit-ovl"></canvas></div></div>'
       +'<div class="edit-tools">'
       +'<div class="seg" id="edSeg"><button data-etool="heal" aria-selected="true">Reparare</button><button data-etool="clone" aria-selected="false">Clonare</button></div>'
@@ -1052,7 +1059,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       +'<div class="edit-actions"><button class="btn soft" data-esrc="1" style="display:none">Setează sursă</button><button class="btn soft" data-eundo="1">Înapoi</button><button class="btn soft" data-ereset="1">Resetează</button></div>'
       +'<div class="edit-row" style="justify-content:center;gap:8px"><button class="btn soft" data-ezoom="out" style="flex:0 0 auto;width:46px;font-size:20px">−</button><button class="btn soft" id="edZoom" data-ezoom="reset" style="flex:0 0 auto;min-width:68px">100%</button><button class="btn soft" data-ezoom="in" style="flex:0 0 auto;width:46px;font-size:20px">+</button></div>'
       +'<div class="edit-hint" id="edHint">Atinge defectul ca să-l elimini. Zoom: pinch / scroll / butoane.</div>'
-      +'</div>';
+      +'</div></div>';
     document.body.appendChild(ov);
     var cv=ov.querySelector('#edCanvas'), ctx=cv.getContext('2d');
     var oc=ov.querySelector('#edOverlay'), octx=oc.getContext('2d'), hover=null, showSize=false, sizeTimer=null;
