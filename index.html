@@ -114,7 +114,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .time{font-family:var(--font-d);font-weight:800;font-size:15px;min-width:46px;font-variant-numeric:tabular-nums}
 .appt .who{flex:1;min-width:0}
 .appt .who .nm{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.appt .who .cx{color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:7px;margin-top:3px}
+.appt .who .nmrow{display:flex;align-items:center;gap:8px}
+.appt .who .nmrow .nm{flex:1;min-width:0}
+.appt .who .cx{color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:7px;margin-top:3px;min-width:0}
+.appt .who .cx .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .chev{color:var(--muted);flex:0 0 auto}
 
 /* Plate */
@@ -123,7 +126,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .plate .pn{padding:2px 7px;letter-spacing:.04em}
 
 /* Status chip */
-.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap;flex:0 0 auto}
 .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .chip.ok{color:var(--ok);background:var(--ok-soft)}
 .chip.warn{color:var(--warn);background:var(--warn-soft)}
@@ -583,9 +586,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     else{chip='<span class="chip '+s.cls+'">'+s.t+'</span>'}
     return '<button class="appt" data-appt="'+a.id+'">'
       +'<span class="time">'+a.time+'</span>'
-      +'<span class="who"><span class="nm">'+esc(a.nm)+'</span>'
+      +'<span class="who"><span class="nmrow"><span class="nm">'+esc(a.nm)+'</span>'+chip+'</span>'
       +'<span class="cx">'+platEU(a.plate)+'<span class="muted">'+esc(a.car)+'</span></span></span>'
-      +chip
       +'<span class="chev">'+svg('chev',16)+'</span></button>';
   }
 
