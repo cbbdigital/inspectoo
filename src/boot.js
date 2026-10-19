@@ -30,6 +30,18 @@ if(!URL || !KEY){
 
 const sb = createClient(URL, KEY, { auth: { persistSession:true, autoRefreshToken:true } });
 window.__sb = sb;
+window.__inspectoAuth = {
+  email: '',
+  signOut: async function(){ try{ await sb.auth.signOut(); }catch(e){} try{ localStorage.clear(); }catch(e){} location.reload(); }
+};
+async function pushUser(){
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    const em = (user && user.email) || '';
+    window.__inspectoAuth.email = em;
+    if(window.InspectoApp && window.InspectoApp.setUser) window.InspectoApp.setUser(em);
+  }catch(e){}
+}
 
 async function ready(){
   if(window.InspectoApp) return;
@@ -45,6 +57,7 @@ async function loadData(){
   ]);
   const err = a.error || c.error || p.error;
   await ready();
+  await pushUser();
   window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data });
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
