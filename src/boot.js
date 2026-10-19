@@ -6,8 +6,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchAppointments, fetchManualClients, fetchPhotos } from './sync.js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+function cleanUrl(u){
+  u = (u||'').trim().replace(/^["']+|["']+$/g,'').replace(/\s+/g,'').replace(/\/+$/,'');
+  if(u && !/^https?:\/\//i.test(u)) u = 'https://'+u;
+  return u;
+}
+const URL = cleanUrl(import.meta.env.VITE_SUPABASE_URL);
+const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY||'').trim().replace(/^["']+|["']+$/g,'');
 
 const READONLY = true; // FAZA 1 — nu scriem în bază
 
@@ -28,7 +33,13 @@ if(!URL || !KEY){
   throw new Error('Supabase env vars missing');
 }
 
-const sb = createClient(URL, KEY, { auth: { persistSession:true, autoRefreshToken:true } });
+let sb;
+try {
+  sb = createClient(URL, KEY, { auth: { persistSession:true, autoRefreshToken:true } });
+} catch(e){
+  banner('URL Supabase invalid: "'+URL+'". Verifică VITE_SUPABASE_URL în Netlify (ex. https://proiect.supabase.co).', 'err');
+  throw e;
+}
 window.__sb = sb;
 window.__inspectoAuth = {
   email: '',
