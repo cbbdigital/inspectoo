@@ -2,12 +2,18 @@
   command = "npm run build"
   publish = "dist"
 
-# SPA / single-page: orice rută -> index.html
+# Landing public la "/" (dist/index.html) — servit implicit.
+# Aplicația la "/dashboard" (dist/dashboard.html).
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/dashboard"
+  to = "/dashboard.html"
   status = 200
 
-# Variabile necesare (setează-le în Netlify → Site settings → Environment variables):
+[[redirects]]
+  from = "/dashboard/*"
+  to = "/dashboard.html"
+  status = 200
+
+# Variabile necesare (Netlify → Site settings → Environment variables):
 #   VITE_SUPABASE_URL        = https://<proiectul-tau>.supabase.co
 #   VITE_SUPABASE_ANON_KEY   = <cheia anon / public>
