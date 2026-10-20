@@ -395,6 +395,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -1005,6 +1006,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       +'<div class="field"><label>Expirare ITP</label><input id="mc_exp" type="date"></div>'
       +'<div class="field"><label>Nume client <span class="muted">(opțional)</span></label><input id="mc_name" placeholder="Nume și prenume"></div>'
       +'<button class="btn primary full" style="margin-top:4px" data-mcadd="1">'+svg('plus',18)+'Adaugă clientul</button>'
+      +'<button class="btn soft full" style="margin-top:8px" data-tab="clients">'+svg('users',17)+'Vezi clienții mei ('+S.clients.length+')</button>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:16px 0"><div style="flex:1;height:1px;background:var(--line)"></div><span class="muted" style="font-size:12px">sau din Excel</span><div style="flex:1;height:1px;background:var(--line)"></div></div>'
       +'<div class="row2"><button class="btn soft" data-xltmpl="1">'+svg('down',17)+'Descarcă model</button><button class="btn soft" data-xlpick="1">'+svg('up',17)+'Încarcă fișier</button></div>'
       +'<button class="btn soft full" style="margin-top:10px'+(S.clients.length?'':';opacity:.5')+'" data-xlexport="1">'+svg('down',17)+'Exportă toți clienții ('+S.clients.length+')</button>'
@@ -1219,10 +1221,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       saved+='<div class="empty">'+svg('cam',26)+'<div>Nicio fotografie în acest interval</div></div>';
     }
     openSheet('<h3>Fotografii inspecție</h3>'
-      +'<div class="eyebrow" style="margin:14px 2px 0">Inspecție nouă · '+shots.length+'/10</div>'
-      +'<div class="field" style="margin-top:8px"><label>Nr. înmatriculare</label><input id="cap_pl" value="'+esc(S.capPlate||'')+'" placeholder="VN 10 ABC"></div>'
+      +'<div class="eyebrow" style="margin:14px 2px 0">Inspecție nouă · '+shots.length+'/10'+(S.capSession?' · '+esc(S.capSession):'')+'</div>'
+      +'<div class="field" style="margin-top:8px"><label>Nr. înmatriculare <span class="muted">(gol → sesiune MANUAL)</span></label><input id="cap_pl" value="'+esc(S.capPlate||'')+'" placeholder="VN 10 ABC"'+(S.capSession?' disabled':'')+'></div>'
       +grid
-      +(shots.length?'<button class="btn primary full" style="margin-top:12px" data-savecap="1">'+svg('check',18)+'Salvează inspecția</button>':'')
+      +(shots.length?'<button class="btn primary full" style="margin-top:12px" data-savecap="1">'+svg('check',18)+'Finalizează sesiunea ('+shots.length+')</button>':'')
       +'<div style="height:1px;background:var(--line);margin:18px 0"></div>'
       +'<div class="eyebrow" style="margin:0 2px 0">Poze salvate</div>'
       +'<div class="row2" style="margin-top:8px"><div class="field"><label>De la</label><input type="date" id="pf" value="'+phFrom+'"></div>'
@@ -1234,6 +1236,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(cp)cp.addEventListener('input',function(){S.capPlate=cp.value});
   }
   function sheetPhotos(){renderPhotos()}
+  function manualId(){return 'MANUAL'+String(Math.floor(100+Math.random()*900))}
+  function ensureSession(){if(S.capSession)return S.capSession;var pl=(S.capPlate||'').replace(/\s+/g,'').toUpperCase();S.capSession=pl||manualId();return S.capSession}
+  function cloudPhoto(url){
+    if(!window.__inspectoPhotos)return;
+    var sid=ensureSession();
+    window.__inspectoPhotos.add(url,sid,TODAY).then(function(r){if(r&&r.error){toast('Poză nesalvată: '+r.error,'shield')}else if(r){toast('Salvat '+sid+'_'+r.index,'cam')}});
+  }
   function civOK(v){return /^[A-Z]-\d{6,7}$/.test((v||'').trim().toUpperCase())}
   function vinOK(v){return /^[A-HJ-NPR-Z0-9]{17}$/i.test((v||'').trim())}
   function normCiv(t){t=(t||'').toUpperCase().replace(/[\s-]/g,'');var m=t.match(/^([A-Z])(\d{6,7})$/);return m?m[1]+'-'+m[2]:''}
@@ -1285,6 +1294,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       +'<button class="ocr-copy" data-copyfield="'+key+'" aria-label="Copiază">'+svg(copied?'check':'copy',18)+'</button></div></div>';
   }
   function ocrAllCopied(){var o=S.ocr;return o.mode==='ci'?(o.numeCopied&&o.prenumeCopied&&o.serieCopied):(o.civCopied&&o.vinCopied)}
+  function ocrSnap(){var o=S.ocr;return JSON.stringify({mode:o.mode,civ:o.civ||'',vin:o.vin||'',nume:o.nume||'',prenume:o.prenume||'',serie:o.serie||''})}
+  function pushScan(){if(!window.__inspectoRT)return;var o=S.ocr;if(o._muteRT)return;var s=ocrSnap();if(s===o._lastRT)return;o._lastRT=s;try{window.__inspectoRT.send(JSON.parse(s))}catch(e){}}
   function renderOcr(){
     var o=S.ocr,ci=o.mode==='ci';
     var seg='<div class="ocr-seg">'
@@ -1308,8 +1319,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     openSheet(body);
     (ci?['nume','prenume','serie']:['civ','vin']).forEach(function(k){
       var el=$('#o_'+k);if(!el)return;
-      el.addEventListener('input',function(){S.ocr[k]=el.value;S.ocr[k+'Copied']=false});
+      el.addEventListener('input',function(){S.ocr[k]=el.value;S.ocr[k+'Copied']=false;pushScan()});
     });
+    pushScan();
   }
   function sheetOcr(){renderOcr()}
   function resetOcr(){var m=S.ocr.mode;if(S.ocr._timer)clearTimeout(S.ocr._timer);S.ocr={target:null,mode:m,civImg:'',civ:'',civSrc:'',civBusy:false,civCopied:false,vinImg:'',vin:'',vinBusy:false,vinCopied:false,ciImg:'',ciBusy:false,nume:'',numeCopied:false,prenume:'',prenumeCopied:false,serie:'',serieCopied:false,err:'',_timer:0}}
@@ -1317,11 +1329,94 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   function scheduleResetIfBoth(){/* textul rămâne până îl șterge utilizatorul — fără reset automat */}
   function cleanSerie(raw){return (raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
   function cleanName(raw){return (raw||'').toString().replace(/\s+/g,' ').trim().toUpperCase()}
+  var _tessW=null;
+  async function tessW(){
+    if(_tessW)return _tessW;
+    if(typeof Tesseract==='undefined')throw new Error('nolib');
+    _tessW=await Tesseract.createWorker('eng');
+    return _tessW;
+  }
+  function ocrPrep(dataUrl,scale){return new Promise(function(res,rej){
+    var img=new Image();
+    img.onload=function(){try{
+      var s=scale||2,w=Math.round(img.width*s),h=Math.round(img.height*s);
+      var c=document.createElement('canvas');c.width=w;c.height=h;var x=c.getContext('2d');
+      x.drawImage(img,0,0,w,h);var im=x.getImageData(0,0,w,h),d=im.data,n=w*h,g=new Float32Array(n),sum=0,k=0;
+      for(var i=0;i<d.length;i+=4){var v=0.3*d[i]+0.59*d[i+1]+0.11*d[i+2];g[k++]=v;sum+=v}
+      var mean=sum/n;
+      for(var i=0,k2=0;i<d.length;i+=4,k2++){var val=g[k2]>mean*0.92?255:0;d[i]=d[i+1]=d[i+2]=val}
+      x.putImageData(im,0,0);res(c.toDataURL('image/png'))
+    }catch(e){rej(e)}};
+    img.onerror=function(){rej(new Error('img'))};img.src=dataUrl;
+  })}
+  async function ocrTess(dataUrl){
+    var w=await tessW();
+    try{await w.setParameters({tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -',tessedit_pageseg_mode:'6'})}catch(_){}
+    var pp;try{pp=await ocrPrep(dataUrl,2)}catch(_){pp=dataUrl}
+    var r=await w.recognize(pp);
+    return (r&&r.data&&r.data.text||'').toUpperCase();
+  }
+  // decupează o regiune din imaginea originală și o întoarce ca dataURL
+  function cropData(dataUrl,x,y,w,h){return new Promise(function(res,rej){
+    var img=new Image();
+    img.onload=function(){try{
+      x=Math.max(0,x);y=Math.max(0,y);w=Math.min(img.width-x,w);h=Math.min(img.height-y,h);
+      var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));
+      c.getContext('2d').drawImage(img,x,y,w,h,0,0,c.width,c.height);res(c.toDataURL('image/png'))
+    }catch(e){rej(e)}};
+    img.onerror=function(){rej(new Error('img'))};img.src=dataUrl;
+  })}
+  // OCR cu cutii pe cuvinte (bbox în spațiul imaginii preprocesate = original*scale)
+  async function ocrWords(dataUrl,scale){
+    var w=await tessW();
+    try{await w.setParameters({tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -',tessedit_pageseg_mode:'6'})}catch(_){}
+    var pp;try{pp=await ocrPrep(dataUrl,scale)}catch(_){pp=dataUrl}
+    var r=await w.recognize(pp,{},{blocks:true});
+    var words=[];
+    (function rec(n){if(!n||typeof n!=='object')return;
+      if(Array.isArray(n.words))n.words.forEach(function(wd){if(wd&&wd.bbox&&typeof wd.text==='string')words.push(wd)});
+      ['blocks','paragraphs','lines'].forEach(function(k){if(Array.isArray(n[k]))n[k].forEach(rec)})
+    })(r.data);
+    return {text:(r.data.text||'').toUpperCase(),words:words};
+  }
+  // VIN: identifică automat șirul lung care începe cu literă, îl decupează și îl re-citește
+  async function ocrVinSmart(dataUrl){
+    var SC=2,res=await ocrWords(dataUrl,SC),best=null,bestScore=-1;
+    res.words.forEach(function(wd){
+      var t=(wd.text||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+      if(t.length<11||t.length>20)return;      // șir lung (VIN=17)
+      if(!/^[A-Z]/.test(t))return;             // începe cu literă
+      var score=20-Math.abs(17-t.length);
+      if(score>bestScore){bestScore=score;best=wd}
+    });
+    if(best&&best.bbox){
+      var b=best.bbox,bw=b.x1-b.x0,bh=b.y1-b.y0,px=bw*0.10,py=bh*0.6;
+      var crop=await cropData(dataUrl,(b.x0-px)/SC,(b.y0-py)/SC,(bw+2*px)/SC,(bh+2*py)/SC);
+      var w=await tessW();
+      try{await w.setParameters({tessedit_char_whitelist:'ABCDEFGHJKLMNPRSTUVWXYZ0123456789',tessedit_pageseg_mode:'7'})}catch(_){}
+      var pp2;try{pp2=await ocrPrep(crop,3)}catch(_){pp2=crop}
+      var r2=await w.recognize(pp2);
+      var vv=cleanVin((r2&&r2.data&&r2.data.text)||'');
+      if(vv)return vv;
+    }
+    return cleanVin(res.text);
+  }
   async function runField(key,f,dataUrl){
     S.ocr.err='';
     if(key==='ci'){
       var sm0=null;try{sm0=window.claude&&claude.use?await claude.use('sample'):null}catch(_){}
-      if(!sm0){S.ocr.ciBusy=false;S.ocr.err='Citirea automată nu e disponibilă aici. Deschide în aplicația Claude sau completează manual.';renderOcr();return}
+      if(!sm0){
+        try{
+          var txt=await ocrTess(dataUrl);
+          var fs=txt.replace(/[^A-Z0-9]/g,'').match(/[A-Z]{2}\d{6}/);S.ocr.serie=fs?fs[0]:'';
+          var L=txt.split(/\n/).map(function(s){return s.trim()}).filter(Boolean);
+          function grab(re){for(var i=0;i<L.length;i++){if(re.test(L[i])){var m=L[i].replace(re,'').replace(/[^A-Z \-]/g,'').trim();if(m.length>=2)return m;if(L[i+1])return L[i+1].replace(/[^A-Z \-]/g,'').trim()}}return''}
+          S.ocr.nume=cleanName(grab(/NUME|NOM/));S.ocr.prenume=cleanName(grab(/PRENUME|PRENOM|PR.NOM/));
+          if(!S.ocr.serie&&!S.ocr.nume&&!S.ocr.prenume)S.ocr.err='Nu am găsit datele. Încearcă o poză mai clară sau completează manual.';
+          else if(!S.ocr.nume||!S.ocr.prenume)S.ocr.err='Verifică/completează numele — citirea offline e aproximativă.';
+        }catch(e){S.ocr.err=(e&&e.message==='nolib')?'Motorul OCR nu s-a încărcat (verifică internetul).':'Nu am putut citi. Completează manual.'}
+        S.ocr.ciBusy=false;renderOcr();return;
+      }
       try{
         var lim0=await sm0.limits();
         if(!lim0||!lim0.images){S.ocr.ciBusy=false;S.ocr.err='Citirea din imagine nu e disponibilă pentru acest cont.';renderOcr();return}
@@ -1340,7 +1435,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       }catch(_){}
     }
     var sm=null;try{sm=window.claude&&claude.use?await claude.use('sample'):null}catch(_){}
-    if(!sm){S.ocr[key+'Busy']=false;S.ocr.err='Citirea automată nu e disponibilă aici. Deschide în aplicația Claude sau completează manual.';renderOcr();return}
+    if(!sm){
+      try{
+        if(key==='civ'){var txt=await ocrTess(dataUrl);var mm=txt.match(/[A-Z]\s*-?\s*\d{6,7}/);var cc=cleanCiv(mm?mm[0]:txt);S.ocr.civ=cc||(mm?mm[0].replace(/\s/g,''):'');if(!S.ocr.civ)S.ocr.err='Nu am găsit seria CIV. Poză mai clară sau completează manual.';}
+        else{var vv=await ocrVinSmart(dataUrl);S.ocr.vin=vv;if(!S.ocr.vin)S.ocr.err='Nu am găsit un VIN valid de 17 caractere. Poză mai clară sau completează manual.';}
+      }catch(e){S.ocr.err=(e&&e.message==='nolib')?'Motorul OCR nu s-a încărcat (verifică internetul).':'Nu am putut citi. Completează manual.'}
+      S.ocr[key+'Busy']=false;renderOcr();return;
+    }
     try{
       var lim=await sm.limits();
       if(!lim||!lim.images){S.ocr[key+'Busy']=false;S.ocr.err='Citirea din imagine nu e disponibilă pentru acest cont.';renderOcr();return}
@@ -1473,7 +1574,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(el.hasAttribute('data-copyfield')){var kf=el.getAttribute('data-copyfield');var el2=$('#o_'+kf);var tx=el2?el2.value:S.ocr[kf];S.ocr[kf]=tx;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tx).then(function(){},function(){})}S.ocr[kf+'Copied']=true;toast('Copiat'+(kf==='civ'?' CIV':' VIN')+': '+tx);renderOcr();scheduleResetIfBoth();return}
     if(el.hasAttribute('data-copyinp')){var inp=$('#'+el.getAttribute('data-copyinp'));if(inp){var tx=inp.value;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tx).then(function(){toast('Copiat')},function(){toast(tx)})}else toast(tx)}return}
     if(el.hasAttribute('data-rmshot')){shots.splice(+el.getAttribute('data-rmshot'),1);renderPhotos();return}
-    if(el.hasAttribute('data-savecap')){var c=shots.length;if(!c){toast('Adaugă cel puțin o poză');return}var pl=(S.capPlate||'').trim()||('MANUAL'+String(Math.floor(100+Math.random()*900)));S.savedPhotos.push({date:TODAY,plate:pl,imgs:shots.slice()});shots=[];S.capPlate='';phFrom=(phFrom>TODAY?TODAY:phFrom);phTo=(phTo<TODAY?TODAY:phTo);renderPhotos();toast(c+' fotografii salvate','check');return}
+    if(el.hasAttribute('data-savecap')){var c=shots.length;if(!c){toast('Adaugă cel puțin o poză');return}var sid=S.capSession||ensureSession();S.savedPhotos.push({date:TODAY,plate:sid,imgs:shots.slice()});shots=[];S.capPlate='';S.capSession='';phFrom=(phFrom>TODAY?TODAY:phFrom);phTo=(phTo<TODAY?TODAY:phTo);renderPhotos();toast('Sesiune finalizată · '+c+' poze','check');return}
     if(el.hasAttribute('data-toast')){toast(el.getAttribute('data-toast'));return}
   });
 
@@ -1484,7 +1585,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     [].forEach.call(files,function(f){
       if(shots.length>=10||!/^image\//.test(f.type||''))return;
       pend++;
-      stampPhoto(f).then(function(url){if(shots.length<10)shots.push(url);if(--pend===0)renderPhotos()},function(){if(--pend===0)renderPhotos()});
+      stampPhoto(f).then(function(url){if(shots.length<10){shots.push(url);cloudPhoto(url);}if(--pend===0)renderPhotos()},function(){if(--pend===0)renderPhotos()});
     });
     camInput.value='';
     if(pend===0)renderPhotos();
@@ -1525,7 +1626,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       render();
     },
     setReadonly:function(on){document.body.classList.toggle('readonly',!!on)},
-    setUser:function(em){S.userEmail=em||'';render();}
+    setUser:function(em){S.userEmail=em||'';render();},
+    onScan:function(p){if(!p)return;var o=S.ocr;o._muteRT=true;if(p.mode)o.mode=p.mode;['civ','vin','nume','prenume','serie'].forEach(function(k){if(typeof p[k]==='string'&&p[k]){o[k]=p[k];o[k+'Copied']=false;if(k==='civ'||k==='vin')o[k+'Src']='telefon';}});o._lastRT=ocrSnap();renderOcr();o._muteRT=false;toast('Primit de pe telefon','sms');},
+    onPhoto:function(p){if(!p||!p.url)return;var set=null;for(var i=0;i<S.savedPhotos.length;i++){var s=S.savedPhotos[i];if(s.plate===p.plate&&s.date===p.date){set=s;break;}}if(!set){set={date:p.date,plate:p.plate,imgs:[]};S.savedPhotos.push(set);}if(!set.imgs)set.imgs=[];var idx=(p.index||set.imgs.length+1)-1;set.imgs[idx]=p.url;renderPhotos();toast('Poză primită de pe telefon','cam');}
   };
   document.dispatchEvent(new Event('inspecto-ready'));
 })();
