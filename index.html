@@ -1230,13 +1230,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     grid+='</div>';
     var inr=S.savedPhotos.filter(function(s){return (!phFrom||s.date>=phFrom)&&(!phTo||s.date<=phTo)}).sort(function(a,b){return a.date.localeCompare(b.date)});
     var total=inr.reduce(function(a,s){return a+setCount(s)},0);
-    var saved='<div class="sec-h" style="margin:14px 2px 8px"><h2 style="font-size:15px">'+inr.length+' inspecții · '+total+' poze</h2></div>';
-    if(inr.length){
-      saved+=inr.map(function(s){ensureImgs(s);var si=S.savedPhotos.indexOf(s);
-        return '<div class="ph-group"><div class="ph-cap">'+platEU(s.plate)+'<span class="muted">'+fmtDate(s.date)+'</span></div>'
-          +'<div class="ph-thumbs">'+s.imgs.map(function(u,ii){return '<img class="ph-th" data-editphoto="'+si+'-'+ii+'" src="'+u+'" alt="">'}).join('')+'</div></div>';
-      }).join('')
-      +'<button class="btn soft full" style="margin-top:16px" data-dlall="1">'+svg('down',18)+'Descarcă toate ('+total+')</button>';
+    var saved='';
+    if(total){
+      saved+='<button class="btn soft full" style="margin-top:14px" data-dlall="1">'+svg('down',18)+'Descarcă toate ('+total+')</button>'
+        +'<div class="ph-thumbs" style="margin-top:12px">'+inr.map(function(s){ensureImgs(s);var si=S.savedPhotos.indexOf(s);return s.imgs.map(function(u,ii){return '<img class="ph-th" data-editphoto="'+si+'-'+ii+'" src="'+u+'" alt="">'}).join('')}).join('')+'</div>';
     } else {
       saved+='<div class="empty">'+svg('cam',26)+'<div>Nicio fotografie în acest interval</div></div>';
     }
