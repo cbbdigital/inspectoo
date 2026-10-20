@@ -10,43 +10,46 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#0e1b33; --navy2:#13243f; --bg:#f6f8fc; --card:#ffffff;
+  --bg:#eef2f8; --app:#f7f9fc; --surface:#ffffff; --surface-2:#f3f6fb;
   --ink:#101b2e; --muted:#5b6a83; --line:#e4e9f2;
-  --accent:#1452e6; --accent-ink:#fff; --green:#15934e; --green-soft:#e4f4ea; --warn:#c9780a;
-  --r:18px; --font-d:"Bricolage Grotesque",system-ui,sans-serif; --font-b:"Plus Jakarta Sans",system-ui,sans-serif;
+  --accent:#1452e6; --accent-soft:#e7eeff;
+  --green:#15934e; --green-soft:#e2f4ea; --warn:#c9780a; --warn-soft:#fbeeda;
+  --r:18px; --shadow:0 18px 44px -24px rgba(16,27,46,.28);
+  --font-d:"Bricolage Grotesque",system-ui,sans-serif; --font-b:"Plus Jakarta Sans",system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:var(--font-b);color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
-h1,h2,h3{font-family:var(--font-d);letter-spacing:-.02em;line-height:1.05}
+h1,h2,h3{font-family:var(--font-d);letter-spacing:-.02em;line-height:1.06}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1140px;margin:0 auto;padding:0 20px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:15px;border-radius:999px;padding:13px 22px;cursor:pointer;border:0;transition:transform .12s,box-shadow .12s,background .12s}
 .btn:active{transform:translateY(1px)}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 10px 24px -10px rgba(20,82,230,.6)}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 12px 26px -12px rgba(20,82,230,.55)}
 .btn-primary:hover{background:#1046c9}
-.btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-.btn-dark{background:var(--navy);color:#fff}
+.btn-ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--surface-2)}
 .btn-green{background:var(--green);color:#fff}
+.btn-green:hover{filter:brightness(.96)}
 .btn-lg{padding:16px 26px;font-size:16px}
 .mk{width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center;flex:0 0 auto}
 .mk svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
 /* NAV */
-.nav{position:sticky;top:0;z-index:40;background:rgba(246,248,252,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav{position:sticky;top:0;z-index:40;background:rgba(238,242,248,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .nav .wrap{display:flex;align-items:center;gap:20px;height:66px}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:800;font-size:20px}
 .nav-links{margin-left:auto;display:flex;align-items:center;gap:26px}
-.nav-links a{font-weight:600;font-size:14.5px;color:var(--muted)}
-.nav-links a:hover{color:var(--ink)}
+.nav-links a:not(.btn){font-weight:600;font-size:14.5px;color:var(--muted)}
+.nav-links a:not(.btn):hover{color:var(--ink)}
 .nav .btn{padding:10px 18px;font-size:14px}
 @media(max-width:780px){.nav-links a:not(.btn){display:none}}
 
 /* HERO */
-.hero{background:var(--bg);padding:64px 0 40px}
+.hero{padding:62px 0 44px}
 .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--accent);background:#e9f0ff;padding:6px 13px;border-radius:999px;margin-bottom:18px}
-.hero h1{font-size:clamp(38px,6vw,62px);font-weight:800}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--accent);background:var(--accent-soft);padding:6px 13px;border-radius:999px;margin-bottom:18px}
+.hero h1{font-size:clamp(38px,6vw,60px);font-weight:800}
 .hero p.lead{color:var(--muted);font-size:18px;margin:18px 0 26px;max-width:30em}
 .cta-row{display:flex;flex-wrap:wrap;gap:12px}
 .badges{display:flex;flex-wrap:wrap;gap:18px;margin-top:22px;color:var(--muted);font-size:14px;font-weight:600}
@@ -54,64 +57,66 @@ a{color:inherit;text-decoration:none}
 .badges svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .demo-btn{margin-top:22px}
 
-/* HERO MOCKUP */
-.mock{background:#0b1626;border-radius:22px;padding:14px;box-shadow:0 30px 70px -30px rgba(11,22,38,.6);border:1px solid #1e2c44}
+/* HERO MOCKUP — light, ca aplicația */
+.mock{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:var(--shadow)}
 .mock-bar{display:flex;gap:6px;padding:6px 8px 12px}
-.mock-bar i{width:11px;height:11px;border-radius:50%;background:#2a3b57;display:block}
-.mcard{background:#111f36;border:1px solid #22304a;border-radius:14px;padding:14px;margin-bottom:10px;color:#e8eefb}
+.mock-bar i{width:11px;height:11px;border-radius:50%;background:#dfe6f1;display:block}
+.mcard{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
 .mcard-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;margin-bottom:10px}
-.mcard-h .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#1d2d49;color:#9fb3d6}
+.mcard-h .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#e7edf6;color:var(--muted)}
 .mrow{display:flex;align-items:center;gap:10px;padding:8px 0}
-.mav{width:30px;height:30px;border-radius:8px;background:#22407a;color:#cfe0ff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:0 0 auto}
+.mav{width:30px;height:30px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:0 0 auto}
 .mrow .nm{font-size:13px;font-weight:700}
-.mrow .sub{font-size:11px;color:#8ba0c4}
+.mrow .sub{font-size:11px;color:var(--muted)}
 .mrow .st{margin-left:auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
-.st.ok{background:#12351f;color:#4bd07e}.st.w{background:#3a2c12;color:#e5a53c}
+.st.ok{background:var(--green-soft);color:var(--green)}.st.w{background:var(--warn-soft);color:var(--warn)}
 .thumbs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
-.thumbs i{aspect-ratio:1;border:1px dashed #2c3c5a;border-radius:7px;display:grid;place-items:center;color:#5f7398;font-size:11px}
-.sms{display:block;background:#13351f;color:#cdebd7;border:1px solid #1d4a2d;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:8px}
-.sms b{color:#6fe39a}
+.thumbs i{aspect-ratio:1;border:1px dashed #c9d4e4;border-radius:7px;display:grid;place-items:center;color:#9fabc0;font-size:11px}
+.sms{display:block;background:var(--green-soft);color:#117a40;border:1px solid #c9e6d5;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:8px}
+.sms b{color:var(--green)}
 
 /* SECTIONS */
-section.band{padding:72px 0}
-.band.dark{background:var(--navy);color:#eaf0fb}
+section.band{padding:70px 0}
+.band.alt{background:var(--surface)}
 .sec-head{text-align:center;max-width:40em;margin:0 auto 42px}
 .sec-head h2{font-size:clamp(28px,4vw,42px);font-weight:800}
 .sec-head p{color:var(--muted);margin-top:12px;font-size:17px}
-.dark .sec-head p{color:#9fb0cd}
 
 /* FEATURES */
 .feat{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.fcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px}
-.fico{width:46px;height:46px;border-radius:12px;background:#e9f0ff;display:grid;place-items:center;margin-bottom:16px}
+.fcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:26px;transition:transform .14s,box-shadow .14s}
+.fcard:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.fico{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;margin-bottom:16px}
 .fico svg{width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .fcard h3{font-size:18px;font-weight:700}
 .fcard p{color:var(--muted);font-size:14.5px;margin-top:8px}
 
 /* PRICING */
 .price{display:grid;grid-template-columns:repeat(2,minmax(0,380px));gap:24px;justify-content:center}
-.pcard{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:22px;padding:30px;position:relative}
-.pcard.reco{border:2px solid var(--green);box-shadow:0 24px 60px -30px rgba(21,147,78,.5)}
+.pcard{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:22px;padding:30px;position:relative;box-shadow:var(--shadow)}
+.pcard.reco{border:2px solid var(--green)}
 .reco-tag{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;padding:5px 14px;border-radius:999px}
 .pcard .pname{font-family:var(--font-d);font-weight:800;font-size:22px;text-align:center}
 .pcard .psub{text-align:center;color:var(--muted);font-size:14px;margin-top:4px}
 .pcard .pprice{text-align:center;font-family:var(--font-d);font-weight:800;font-size:46px;margin:18px 0 2px}
+.pcard .pprice span{font-size:20px}
 .pcard .pper{text-align:center;color:var(--muted);font-size:13px;margin-bottom:22px}
 .plist{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
 .plist li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
-.plist svg{width:19px;height:19px;flex:0 0 auto;margin-top:1px}
+.plist svg{width:19px;height:19px;flex:0 0 auto;margin-top:1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .plist .y svg{stroke:var(--green)}
 .plist .n{color:#9aa6b8;text-decoration:line-through}
 .plist .n svg{stroke:#c3ccdc}
-.plist li svg{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
-/* CTA + FOOTER */
-.cta-band{text-align:center}
-.cta-band h2{font-size:clamp(28px,4vw,40px);font-weight:800}
-.cta-band p{color:#9fb0cd;margin:12px 0 26px;font-size:17px}
-footer{background:#0a1324;color:#8ba0c4;padding:34px 0;font-size:13.5px}
+/* CTA */
+.cta .wrap{background:var(--surface);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);text-align:center;padding:52px 24px;max-width:860px}
+.cta h2{font-size:clamp(26px,4vw,38px);font-weight:800}
+.cta p{color:var(--muted);margin:12px 0 26px;font-size:17px}
+
+/* FOOTER */
+footer{border-top:1px solid var(--line);color:var(--muted);padding:30px 0;font-size:13.5px;background:var(--surface)}
 footer .wrap{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
-footer .brand{color:#eaf0fb;font-size:17px}
+footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:800;color:var(--ink);font-size:17px}
 
 @media(max-width:860px){
   .hero .wrap{grid-template-columns:1fr;gap:30px}
@@ -129,7 +134,7 @@ footer .brand{color:#eaf0fb;font-size:17px}
     <nav class="nav-links">
       <a href="#functii">Funcțiile aplicației</a>
       <a href="#preturi">Prețuri</a>
-      <a class="btn btn-dark" href="/dashboard">Conectare</a>
+      <a class="btn btn-primary" href="/dashboard">Conectare</a>
     </nav>
   </div>
 </header>
@@ -173,7 +178,7 @@ footer .brand{color:#eaf0fb;font-size:17px}
   </div>
 </section>
 
-<section class="band" id="functii">
+<section class="band alt" id="functii">
   <div class="wrap">
     <div class="sec-head"><h2>Funcțiile aplicației</h2><p>Tot ce-ți trebuie pentru o zi de ITP fără bătăi de cap.</p></div>
     <div class="feat">
@@ -187,14 +192,14 @@ footer .brand{color:#eaf0fb;font-size:17px}
   </div>
 </section>
 
-<section class="band" id="preturi" style="background:var(--navy);color:#eaf0fb">
+<section class="band" id="preturi">
   <div class="wrap">
-    <div class="sec-head"><h2>Prețuri simple și transparente</h2><p style="color:#9fb0cd">Alege planul potrivit pentru stația ta.</p></div>
+    <div class="sec-head"><h2>Prețuri simple și transparente</h2><p>Alege planul potrivit pentru stația ta.</p></div>
     <div class="price">
       <div class="pcard">
         <div class="pname">Basic</div>
         <div class="psub">Notificare expirare ITP</div>
-        <div class="pprice">129 <span style="font-size:20px">RON</span></div>
+        <div class="pprice">129 <span>RON</span></div>
         <div class="pper">/lună per inspector</div>
         <ul class="plist">
           <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>SMS expirare ITP (7 zile înainte)</li>
@@ -210,7 +215,7 @@ footer .brand{color:#eaf0fb;font-size:17px}
         <span class="reco-tag">RECOMANDAT</span>
         <div class="pname">Complet</div>
         <div class="psub">Toate notificările incluse</div>
-        <div class="pprice">199 <span style="font-size:20px">RON</span></div>
+        <div class="pprice">199 <span>RON</span></div>
         <div class="pper">/lună per inspector</div>
         <ul class="plist">
           <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>SMS expirare ITP (7 zile înainte)</li>
@@ -226,7 +231,7 @@ footer .brand{color:#eaf0fb;font-size:17px}
   </div>
 </section>
 
-<section class="band dark cta-band">
+<section class="band cta">
   <div class="wrap">
     <h2>Accesează contul tău</h2>
     <p>Intră în aplicație și organizează-ți ziua de ITP.</p>
@@ -236,7 +241,7 @@ footer .brand{color:#eaf0fb;font-size:17px}
 
 <footer>
   <div class="wrap">
-    <span class="brand" style="display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:800"><span class="mk"><svg viewBox="0 0 24 24" style="overflow:visible"><path d="M16.77 4.37 A9 9 0 1 0 20.34 8.63"/><path d="M8 12.4l3.2 3.2 9.2-10.4"/></svg></span>Inspecto</span>
+    <span class="fbrand"><span class="mk"><svg viewBox="0 0 24 24" style="overflow:visible"><path d="M16.77 4.37 A9 9 0 1 0 20.34 8.63"/><path d="M8 12.4l3.2 3.2 9.2-10.4"/></svg></span>Inspecto</span>
     <span>© 2026 Inspecto · Creat de un inspector ITP, pentru inspectori ITP.</span>
   </div>
 </footer>
