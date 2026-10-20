@@ -1109,10 +1109,23 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(dl){try{await dl.save({filename:filename,data:blob});return true}catch(e){}}
     return saveBlob(filename,blob);
   }
+  function urlToBlob(u){var a=u.split(','),m=(a[0].match(/:(.*?);/)||[])[1]||'image/jpeg',b=atob(a[1]),n=b.length,ar=new Uint8Array(n);while(n--)ar[n]=b.charCodeAt(n);return new Blob([ar],{type:m});}
   async function downloadAll(){
-    if(typeof JSZip==='undefined'){toast('Biblioteca ZIP nu s-a încărcat');return}
     var sets=S.savedPhotos.filter(function(s){return (!phFrom||s.date>=phFrom)&&(!phTo||s.date<=phTo)});
     if(!sets.length){toast('Nicio poză în interval');return}
+    // Ca aplicația veche: alegi folderul, se scriu direct folderele cu data + pozele
+    if(window.showDirectoryPicker){
+      var dir;try{dir=await window.showDirectoryPicker({mode:'readwrite'});}catch(e){toast('Descărcare anulată');return}
+      toast('Se salvează în folder…','down');var count=0;
+      for(var si=0;si<sets.length;si++){var s=sets[si];var dp=s.date.split('-');var dd=dp[2]+'.'+dp[1]+'.'+dp[0];var plate=(s.plate||'NO_PLATE').replace(/\s+/g,'');var cnt=setCount(s);
+        try{var dayFolder=await dir.getDirectoryHandle(dd,{create:true});
+          for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);if(!url)continue;try{var fh=await dayFolder.getFileHandle(plate+'_'+(i+1)+'.jpg',{create:true});var w=await fh.createWritable();await w.write(urlToBlob(url));await w.close();count++;}catch(_){}}
+        }catch(_){}
+      }
+      toast(count+' poze salvate în folder','check');return;
+    }
+    // Fallback (Safari/Firefox): ZIP
+    if(typeof JSZip==='undefined'){toast('Biblioteca ZIP nu s-a încărcat');return}
     var mn=['January','February','March','April','May','June','July','August','September','October','November','December'];
     toast('Se pregătește arhiva…','down');
     var zip=new JSZip();
