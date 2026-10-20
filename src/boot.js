@@ -46,10 +46,12 @@ window.__inspectoAuth = {
   signOut: async function(){ try{ await sb.auth.signOut(); }catch(e){} try{ localStorage.clear(); }catch(e){} location.reload(); }
 };
 let INSPECTOR = null; // { id, service_provider_id, is_owner }
+let AUTH_UID = null;
 async function pushUser(){
   try{
     const { data:{ user } } = await sb.auth.getUser();
     const em = (user && user.email) || '';
+    AUTH_UID = (user && user.id) || null;
     window.__inspectoAuth.email = em;
     if(window.InspectoApp && window.InspectoApp.setUser) window.InspectoApp.setUser(em);
     if(user && user.email){
@@ -58,6 +60,74 @@ async function pushUser(){
     }
   }catch(e){}
 }
+
+/* ---- Sincronizare live telefon ↔ desktop (Realtime Broadcast, fără DB) ---- */
+let _rtChannel = null;
+function setupRealtime(){
+  try{
+    if(!INSPECTOR || !INSPECTOR.id || _rtChannel) return;
+    const ch = sb.channel('ocr:'+INSPECTOR.id, { config:{ broadcast:{ self:false } } });
+    ch.on('broadcast', { event:'ocr' }, function(msg){
+      try{ if(window.InspectoApp && window.InspectoApp.onScan) window.InspectoApp.onScan(msg.payload||{}); }catch(e){}
+    });
+    ch.on('broadcast', { event:'photo' }, function(msg){
+      try{ if(window.InspectoApp && window.InspectoApp.onPhoto) window.InspectoApp.onPhoto(msg.payload||{}); }catch(e){}
+    });
+    ch.subscribe();
+    _rtChannel = ch;
+    window.__inspectoRT = {
+      send: function(payload){ try{ ch.send({ type:'broadcast', event:'ocr', payload:payload }); }catch(e){} }
+    };
+  }catch(e){}
+}
+
+/* ---- FAZA 2: poze — salvare intermediară automată în Storage + upsert (ca aplicația veche) ---- */
+function _dataURLtoBlob(u){try{var a=u.split(','),m=(a[0].match(/:(.*?);/)||[])[1]||'image/jpeg',b=atob(a[1]),n=b.length,ar=new Uint8Array(n);while(n--)ar[n]=b.charCodeAt(n);return new Blob([ar],{type:m});}catch(e){return null;}}
+const _MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function _photoPath(uid,plate,date,index){
+  var p=String(date).split('-'),y=+p[0],mo=+p[1],da=+p[2];
+  var monthYear=_MON[mo-1]+' '+y, dd=('0'+da).slice(-2)+'.'+('0'+mo).slice(-2)+'.'+y;
+  return uid+'/'+monthYear+'/'+dd+'/'+String(plate).replace(/\s+/g,'').toUpperCase()+'_'+index+'.jpg';
+}
+let _photoQ = Promise.resolve();
+const _rowCache = {};
+window.__inspectoPhotos = {
+  // urcă o poză în sesiunea (placă+dată); indexul e calculat din server → continuă corect după pauză/refresh
+  add: function(dataUrl, plate, date){
+    _photoQ = _photoQ.then(async function(){
+      try{
+        if(!AUTH_UID){ var u=(await sb.auth.getUser()).data.user; AUTH_UID=u&&u.id; }
+        if(!AUTH_UID) return { error:'Nelogat' };
+        plate = String(plate||'').replace(/\s+/g,'').toUpperCase();
+        if(!plate) return { error:'Lipsește nr. înmatriculare' };
+        var blob=_dataURLtoBlob(dataUrl); if(!blob) return { error:'Imagine invalidă' };
+        var key=plate+'|'+date, rid=_rowCache[key], row=null;
+        if(rid){ row=(await sb.from('inspection_photos').select('*').eq('id',rid).maybeSingle()).data; }
+        else{ row=(await sb.from('inspection_photos').select('*').is('appointment_id',null).eq('license_plate',plate).eq('inspection_date',date).maybeSingle()).data; if(row){ rid=row.id; _rowCache[key]=rid; } }
+        var nextIdx=1; if(row){ for(var i=1;i<=10;i++){ if(row['photo_'+i+'_url']) nextIdx=i+1; } }
+        if(nextIdx>10) return { error:'Maxim 10 poze pe sesiune' };
+        var path=_photoPath(AUTH_UID,plate,date,nextIdx);
+        var up=await sb.storage.from('inspection-photos').upload(path,blob,{upsert:true,contentType:'image/jpeg'});
+        if(up.error) return { error: up.error.message||'Eroare upload' };
+        var url=sb.storage.from('inspection-photos').getPublicUrl(path).data.publicUrl;
+        var col='photo_'+nextIdx+'_url';
+        if(!rid){
+          var payload={ appointment_id:null, license_plate:plate, inspection_date:date }; payload[col]=url;
+          var ins=await sb.from('inspection_photos').insert(payload).select('id').maybeSingle();
+          if(ins.error) return { error: ins.error.message };
+          rid=ins.data&&ins.data.id; if(rid)_rowCache[key]=rid;
+        } else {
+          var u2={}; u2[col]=url;
+          var upd=await sb.from('inspection_photos').update(u2).eq('id',rid);
+          if(upd.error) return { error: upd.error.message };
+        }
+        if(_rtChannel){ try{ _rtChannel.send({ type:'broadcast', event:'photo', payload:{ plate:plate, date:date, index:nextIdx, url:url } }); }catch(e){} }
+        return { url:url, index:nextIdx };
+      }catch(e){ return { error: e.message||String(e) }; }
+    });
+    return _photoQ;
+  }
+};
 
 /* ---- FAZA 2: scriere (aceleași operații ca aplicația veche) ---- */
 window.__inspectoWrite = {
@@ -124,6 +194,7 @@ async function loadData(){
   const err = a.error || c.error || p.error;
   await ready();
   await pushUser();
+  setupRealtime();
   window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data });
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
