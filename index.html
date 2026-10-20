@@ -1017,7 +1017,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(!pl||!ph||!ex){toast('Completează nr. înmatriculare, telefon și expirarea');return}
     if(S.clients.some(function(c){return c.license_plate===pl})){toast('Clientul cu acest nr. există deja');return}
     S.clients.unshift({id:Date.now(),client_name:nm,license_plate:pl,client_phone:ph,itp_expiry_date:ex});
-    toast('Client adăugat: '+pl);render();sheetMyClients();
+    render();sheetMyClients();
+    if(window.__inspectoWrite){toast('Se salvează…','clock');window.__inspectoWrite.addClient({plate:pl,phone:ph,itp_expiry_date:ex,nm:nm}).then(function(r){if(r&&r.error){toast('Eroare la salvare: '+r.error,'shield');}else{toast('Client salvat: '+pl);}});}
+    else{toast('Client adăugat: '+pl);}
   }
   function xlsDate(v){
     if(v==null||v==='')return null;
@@ -1379,12 +1381,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     var a=S.appts.filter(function(x){return x.id==id})[0]||{nm:'',plate:''};
     openSheet('<h3>Rezultat inspecție</h3><div class="muted" style="font-size:13px">'+esc(a.nm)+' · '+esc(a.plate)+'</div>'
       +'<div class="resgrid">'
-      +'<button data-setres="'+id+'" data-lbl="Valabil 6 luni" data-cls="ok">6 luni<span class="cap">valabil</span></button>'
-      +'<button data-setres="'+id+'" data-lbl="Valabil 1 an" data-cls="ok">1 an<span class="cap">valabil</span></button>'
-      +'<button data-setres="'+id+'" data-lbl="Valabil 2 ani" data-cls="ok">2 ani<span class="cap">valabil</span></button>'
+      +'<button data-setres="'+id+'" data-act="passed" data-tpi="6_months" data-lbl="Valabil 6 luni" data-cls="ok">6 luni<span class="cap">valabil</span></button>'
+      +'<button data-setres="'+id+'" data-act="passed" data-tpi="1_year" data-lbl="Valabil 1 an" data-cls="ok">1 an<span class="cap">valabil</span></button>'
+      +'<button data-setres="'+id+'" data-act="passed" data-tpi="2_year" data-lbl="Valabil 2 ani" data-cls="ok">2 ani<span class="cap">valabil</span></button>'
       +'</div>'
-      +'<button class="optbtn warn" data-setres="'+id+'" data-lbl="Anulare" data-cls="warn">'+svg('clock',17)+'Anulare</button>'
-      +'<button class="optbtn bad" data-setres="'+id+'" data-lbl="Respins" data-cls="bad">'+svg('shield',17)+'Respins</button>');
+      +'<button class="optbtn warn" data-setres="'+id+'" data-act="cancel" data-lbl="Anulare" data-cls="warn">'+svg('clock',17)+'Anulare</button>'
+      +'<button class="optbtn bad" data-setres="'+id+'" data-act="failed" data-lbl="Respins" data-cls="bad">'+svg('shield',17)+'Respins</button>');
   }
 
   /* ---- dock ---- */
@@ -1454,7 +1456,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(el.hasAttribute('data-delclient')){var cid=el.getAttribute('data-delclient');S.clients=S.clients.filter(function(x){return x.id!=cid});closeSheet();render();toast('Client șters');return}
     if(el.hasAttribute('data-start')){var id=el.getAttribute('data-start');S.appts.forEach(function(a){if(a.id==id)a.status='finalizat'});closeSheet();render();toast('Inspecție finalizată');return}
     if(el.hasAttribute('data-result')){sheetResult(el.getAttribute('data-result'));return}
-    if(el.hasAttribute('data-setres')){var rid=el.getAttribute('data-setres'),lbl=el.getAttribute('data-lbl'),cls=el.getAttribute('data-cls');S.appts.forEach(function(a){if(a.id==rid){a.status='finalizat';a.result=lbl;a.resultCls=cls}});closeSheet();render();toast('Rezultat: '+lbl);return}
+    if(el.hasAttribute('data-setres')){var rid=el.getAttribute('data-setres'),lbl=el.getAttribute('data-lbl'),cls=el.getAttribute('data-cls'),act=el.getAttribute('data-act'),tpi=el.getAttribute('data-tpi');S.appts.forEach(function(a){if(a.id==rid){a.status='finalizat';a.result=lbl;a.resultCls=cls}});closeSheet();render();
+      if(window.__inspectoWrite&&act){toast('Se salvează…','clock');window.__inspectoWrite.setResult(rid,act,tpi).then(function(r){if(r&&r.error){toast('Eroare: '+r.error,'shield');}else if(r&&r.sms){toast('Rezultat salvat · SMS trimis','sms');}else{toast('Rezultat salvat');}});}
+      else{toast('Rezultat: '+lbl);}
+      return}
     if(el.hasAttribute('data-copy')){var tx=el.getAttribute('data-copy');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tx).then(function(){toast('Număr copiat')},function(){toast('Număr: '+tx)})}else{toast('Număr: '+tx)}return}
     if(el.hasAttribute('data-sms')){toast('SMS pregătit (demo)','sms');return}
     if(el.hasAttribute('data-remind')){closeSheet();toast('Reminder ITP trimis','sms');return}
