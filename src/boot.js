@@ -45,14 +45,69 @@ window.__inspectoAuth = {
   email: '',
   signOut: async function(){ try{ await sb.auth.signOut(); }catch(e){} try{ localStorage.clear(); }catch(e){} location.reload(); }
 };
+let INSPECTOR = null; // { id, service_provider_id, is_owner }
 async function pushUser(){
   try{
     const { data:{ user } } = await sb.auth.getUser();
     const em = (user && user.email) || '';
     window.__inspectoAuth.email = em;
     if(window.InspectoApp && window.InspectoApp.setUser) window.InspectoApp.setUser(em);
+    if(user && user.email){
+      const { data } = await sb.from('inspectors').select('id, service_provider_id, is_owner').eq('email', user.email).maybeSingle();
+      if(data) INSPECTOR = data;
+    }
   }catch(e){}
 }
+
+/* ---- FAZA 2: scriere (aceleași operații ca aplicația veche) ---- */
+window.__inspectoWrite = {
+  // act: 'passed' | 'failed' | 'cancel' ; tpiType: '6_months' | '1_year' | '2_year'
+  async setResult(appointmentId, act, tpiType){
+    if(!appointmentId || !act) return { error:'Lipsește programarea' };
+    try{
+      if(act === 'cancel'){
+        const { error } = await sb.from('appointments')
+          .update({ status:'cancelled', updated_at:new Date().toISOString() })
+          .eq('id', appointmentId);
+        return { error: error && (error.message||String(error)) };
+      }
+      const upd = { status:'completed', result:act, updated_at:new Date().toISOString() };
+      upd.tpi_type = (act === 'failed') ? null : tpiType;
+      const { error } = await sb.from('appointments').update(upd).eq('id', appointmentId);
+      if(error) return { error: error.message||String(error) };
+      // SMS pe loc, exact ca aplicația veche (funcția edge existentă trimite + programează reminderul din tpi_type)
+      let sms = false;
+      try{
+        const { data:{ session } } = await sb.auth.getSession();
+        if(session && session.access_token){
+          const res = await fetch(URL + '/functions/v1/send-inspection-completed', {
+            method:'POST',
+            headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+            body: JSON.stringify({ appointmentId })
+          });
+          let b = null; try{ b = await res.json(); }catch(_){}
+          sms = res.ok && b && b.success === true;
+        }
+      }catch(_){}
+      return { error:null, sms };
+    }catch(e){ return { error: e.message||String(e) }; }
+  },
+  // c: { plate, phone, itp_expiry_date, nm }
+  async addClient(c){
+    if(!INSPECTOR || !INSPECTOR.id || !INSPECTOR.service_provider_id) return { error:'Profil inspector negăsit (reloghează-te).' };
+    try{
+      const { error } = await sb.from('manual_clients').insert({
+        inspector_id: INSPECTOR.id,
+        service_provider_id: INSPECTOR.service_provider_id,
+        license_plate: (c.plate||'').toUpperCase().replace(/\s+/g,'').trim(),
+        client_phone: (c.phone||'').trim(),
+        itp_expiry_date: c.itp_expiry_date || null,
+        client_name: (c.nm||'').trim()
+      });
+      return { error: error && (error.message||String(error)) };
+    }catch(e){ return { error: e.message||String(e) }; }
+  }
+};
 
 async function ready(){
   if(window.InspectoApp) return;
