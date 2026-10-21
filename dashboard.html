@@ -1575,9 +1575,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     var el=e.target.closest('[data-tab],[data-sheet],[data-appt],[data-client],[data-start],[data-result],[data-setres],[data-dlall],[data-capture],[data-addshot],[data-rmshot],[data-savecap],[data-editphoto],[data-ocrshot],[data-ocrclear],[data-ocrreset],[data-ocrmode],[data-copyfield],[data-copyinp],[data-mcadd],[data-xltmpl],[data-xlpick],[data-xlexport],[data-delclient],[data-day],[data-cal],[data-addon],[data-savappt],[data-adminopen],[data-adminback],[data-adm],[data-inspector],[data-delinsp],[data-savinsp],[data-doc],[data-plan],[data-copy],[data-sms],[data-remind],[data-toast],[data-logout]');
     if(!el)return;
     if(el.hasAttribute('data-logout')){if(window.__inspectoAuth&&window.__inspectoAuth.signOut){window.__inspectoAuth.signOut();}else{toast('Conectează Supabase pentru deconectare');}return}
-    if(el.hasAttribute('data-tab')){S.adminOpen=false;S.tab=el.getAttribute('data-tab');closeSheet();render();window.scrollTo(0,0);return}
-    if(el.hasAttribute('data-adminopen')){S.adminOpen=true;S.adminTab='overview';render();window.scrollTo(0,0);return}
-    if(el.hasAttribute('data-adminback')){S.adminOpen=false;render();window.scrollTo(0,0);return}
+    if(el.hasAttribute('data-tab')){S.adminOpen=false;S.tab=el.getAttribute('data-tab');closeSheet();render();(document.querySelector(".scroll")||{}).scrollTop=0;return}
+    if(el.hasAttribute('data-adminopen')){S.adminOpen=true;S.adminTab='overview';render();(document.querySelector(".scroll")||{}).scrollTop=0;return}
+    if(el.hasAttribute('data-adminback')){S.adminOpen=false;render();(document.querySelector(".scroll")||{}).scrollTop=0;return}
     if(el.hasAttribute('data-adm')){S.adminTab=el.getAttribute('data-adm');render();return}
     if(el.hasAttribute('data-inspector')){sheetInspector(el.getAttribute('data-inspector'));return}
     if(el.hasAttribute('data-savinsp')){var sid=el.getAttribute('data-savinsp');var ins=S.inspectors.filter(function(x){return x.id==sid})[0];if(ins){ins.nm=$('#i_nm').value.trim()||ins.nm;ins.auth=$('#i_au').value.trim();var _ad=$('#i_ad');if(_ad)ins.address=_ad.value.trim();ins.status=$('#i_st').value;}closeSheet();render();toast('Stație actualizată');return}
