@@ -50,7 +50,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-b);-webkit-font-smoothing:antialiased;line-height:1.45;overflow-x:hidden;width:100%}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 h1,h2,h3{font-family:var(--font-d);margin:0;letter-spacing:-.01em;text-wrap:balance}
@@ -224,7 +224,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 /* Dock */
 .dock{position:fixed;left:0;right:0;bottom:0;max-width:440px;margin:0 auto;z-index:25;pointer-events:none;
-  padding:0 max(14px,env(safe-area-inset-left,0px)) calc(max(env(safe-area-inset-bottom,0px),6px) + 4px) max(14px,env(safe-area-inset-right,0px))}
+  padding:0 max(14px,env(safe-area-inset-left,0px)) calc(max(env(safe-area-inset-bottom,0px),10px) * 0.5 + 4px) max(14px,env(safe-area-inset-right,0px))}
 .dock::before{content:"";position:absolute;inset:-28px 0 0 0;background:linear-gradient(to top,var(--app) 62%,transparent);pointer-events:none;z-index:-1}
 .dock-in{pointer-events:auto;max-width:412px;margin:0 auto;background:var(--surface);border:1px solid var(--line);
   border-radius:28px;box-shadow:0 10px 30px -8px rgba(16,27,46,.35);display:grid;grid-template-columns:1fr 1fr 64px 1fr 1fr;align-items:center;height:62px;padding:0 6px}
