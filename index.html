@@ -77,6 +77,8 @@ a{color:inherit;text-decoration:none}
 
 /* SECTIONS */
 section.band{padding:70px 0}
+#preturi{padding-bottom:42px}
+.band.cta{padding-top:46px}
 .band.alt{background:var(--surface)}
 .sec-head{text-align:center;max-width:40em;margin:0 auto 42px}
 .sec-head h2{font-size:clamp(28px,4vw,42px);font-weight:800}
@@ -118,11 +120,45 @@ footer{border-top:1px solid var(--line);color:var(--muted);padding:30px 0;font-s
 footer .wrap{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
 footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:800;color:var(--ink);font-size:17px}
 
+/* REGISTRATION MODAL */
+.reg-ov{position:fixed;inset:0;z-index:60;background:rgba(16,27,46,.5);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto}
+.reg-ov.on{display:flex}
+.reg-card{position:relative;background:var(--surface);border-radius:22px;border:1px solid var(--line);box-shadow:0 30px 80px -30px rgba(16,27,46,.5);width:100%;max-width:520px;padding:26px}
+.reg-card h3{font-size:22px;font-weight:800}
+.reg-sub{color:var(--muted);font-size:14px;margin:4px 0 16px}
+.reg-seg{display:flex;gap:8px;margin-bottom:12px}
+.reg-seg button{flex:1;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:12px;font-weight:700;cursor:pointer;font-family:var(--font-b);color:var(--ink);font-size:14px}
+.reg-seg button[aria-selected=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.reg-f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.reg-f label{font-size:12.5px;font-weight:600;color:var(--muted)}
+.reg-f input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;outline:none;width:100%}
+.reg-f input:focus{border-color:var(--accent)}
+.reg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.reg-x{position:absolute;top:16px;right:18px;cursor:pointer;color:var(--muted);background:none;border:0;font-size:24px;line-height:1}
+.reg-err{color:#d8392b;font-size:12.5px;min-height:16px;margin:2px 0 8px}
+.reg-terms{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);margin:4px 0 14px}
+.pj-only{display:none}
+.reg-ov.pj .pj-only{display:block}
 @media(max-width:860px){
   .hero .wrap{grid-template-columns:1fr;gap:30px}
   .mock{max-width:420px;margin:0 auto}
   .feat{grid-template-columns:1fr}
-  .price{grid-template-columns:1fr;max-width:400px;margin:0 auto}
+  .wrap{padding:0 28px}
+  /* Hero mock: fără ramă de telefon, carduri full-width, mai puțin scroll */
+  .mock{max-width:none;margin:0;padding:0;background:transparent;border:0;box-shadow:none}
+  .mock-bar{display:none}
+  .mock .mcard{padding:18px;border-radius:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .mock .m-sms{display:none}
+  .mock .mcard-h{font-size:15px}
+  .mock .mrow{padding:12px 0}
+  .mock .mrow .nm{font-size:15px}
+  .mock .mrow .sub{font-size:12.5px}
+  .mock .thumbs i{font-size:13px}
+  .price{grid-template-columns:1fr;max-width:360px;margin:0 auto}
+  #preturi{padding-bottom:34px}
+  .band.cta{padding-top:34px}
+  .cta .wrap{max-width:360px;padding:34px 24px}
+  .cta h2{font-size:26px}
 }
 </style>
 </head>
@@ -142,12 +178,11 @@ footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d
 <section class="hero">
   <div class="wrap">
     <div>
-      <span class="eyebrow">★ Creat de un inspector ITP</span>
       <h1>Ziua ta de ITP,<br>organizată perfect.</h1>
       <p class="lead">Cel mai intuitiv serviciu de notificare a clienților stației tale ITP — și cel mai simplu mod de a-ți organiza programările, pozele și reminderele.</p>
       <div class="cta-row">
         <a class="btn btn-primary btn-lg" href="/dashboard">Autentifică-te aici</a>
-        <a class="btn btn-ghost btn-lg" href="/dashboard">Înregistrează-te →</a>
+        <a class="btn btn-ghost btn-lg" href="#" data-reg="complete">Înregistrează-te →</a>
       </div>
       <div class="badges">
         <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>30 zile gratuit</span>
@@ -164,11 +199,11 @@ footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d
         <div class="mrow"><span class="mav">IP</span><div><div class="nm">Ion Popescu · 10:00</div><div class="sub">VW Golf · VN11XYZ</div></div><span class="st ok">confirmat</span></div>
         <div class="mrow"><span class="mav">MP</span><div><div class="nm">Maria Popescu · 14:00</div><div class="sub">Dacia Logan · B123ABC</div></div><span class="st w">în așteptare</span></div>
       </div>
-      <div class="mcard">
+      <div class="mcard m-photos">
         <div class="mcard-h"><span>Popescu Ion · B123ABC</span><span class="pill">Fotografii</span></div>
         <div class="thumbs"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i></div>
       </div>
-      <div class="mcard" style="padding-bottom:6px">
+      <div class="mcard m-sms" style="padding-bottom:6px">
         <div class="mcard-h"><span>SMS automate</span></div>
         <span class="sms"><b>SMS 1</b> · construiești credibilitatea</span>
         <span class="sms"><b>SMS 2</b> · construiești seriozitatea</span>
@@ -182,12 +217,10 @@ footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d
   <div class="wrap">
     <div class="sec-head"><h2>Funcțiile aplicației</h2><p>Tot ce-ți trebuie pentru o zi de ITP fără bătăi de cap.</p></div>
     <div class="feat">
-      <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h0M16 16h0"/></svg></div><h3>Asistentul tău</h3><p>Întrebi orice cod de deficiență și primești răspunsul pe loc, direct în aplicație.</p></div>
       <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Integrare SMS</h3><p>Reminder la expirare, confirmare de finalizare și mulțumire — trimise automat prin SMS.</p></div>
-      <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div><h3>Multi Vehicle Tracking</h3><p>Clientul tău poate avea și 100 de mașini — toate urmărite, cu expirări separate.</p></div>
       <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div><h3>Transfer poze instant</h3><p>Pozele de la inspecție ajung automat din telefon pe desktop, în timp real.</p></div>
-      <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2M7 12h10"/></svg></div><h3>Citire text CIV / VIN</h3><p>Fotografiezi talonul sau buletinul și seriile se completează automat.</p></div>
-      <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div><h3>Editor foto</h3><p>Reparare, clonare și decolorare direct pe poză, înainte să o salvezi.</p></div>
+      <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2M7 12h10"/></svg></div><h3>Citire text CIV / VIN</h3><p>Fără să mai fie nevoie să scrii nimic, programul identifică prin fotografii CIV și VIN.</p></div>
+      <div class="fcard"><div class="fico"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div><h3>Prelucrare Imagini</h3><p>Prelucrează imaginea așa cum îți dorești.</p></div>
     </div>
   </div>
 </section>
@@ -202,14 +235,14 @@ footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d
         <div class="pprice">129 <span>RON</span></div>
         <div class="pper">/lună per inspector</div>
         <ul class="plist">
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>SMS expirare ITP (7 zile înainte)</li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Programezi și organizezi ca la carte</li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Multi Vehicle Tracking (până la 100 mașini)</li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Transfer poze instant telefon → PC</li>
           <li class="n"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>SMS finalizare inspecție</li>
-          <li class="n"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>SMS reminder programare</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Nelimitat SMS expirare ITP (7 zile înainte)</li>
+          <li class="n"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>SMS 24h reminder programare</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Calendar intuitiv al zilei</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Transfer instant poze telefon → PC</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Prelucrare imagini</li>
         </ul>
-        <a class="btn btn-ghost" style="width:100%" href="/dashboard">Începe perioada de probă</a>
+        <a class="btn btn-ghost" style="width:100%" href="#" data-reg="basic">Începe perioada de probă</a>
       </div>
       <div class="pcard reco">
         <span class="reco-tag">RECOMANDAT</span>
@@ -218,14 +251,14 @@ footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d
         <div class="pprice">199 <span>RON</span></div>
         <div class="pper">/lună per inspector</div>
         <ul class="plist">
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>SMS expirare ITP (7 zile înainte)</li>
           <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><b>SMS finalizare inspecție</b></li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><b>SMS reminder programare</b></li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Programezi și organizezi ca la carte</li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Multi Vehicle Tracking (până la 100 mașini)</li>
-          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Transfer poze instant telefon → PC</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Nelimitat SMS expirare ITP (7 zile înainte)</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><b>SMS 24h reminder programare</b></li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Calendar intuitiv al zilei</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Transfer instant poze telefon → PC</li>
+          <li class="y"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Prelucrare imagini</li>
         </ul>
-        <a class="btn btn-green" style="width:100%" href="/dashboard">Începe perioada de probă</a>
+        <a class="btn btn-green" style="width:100%" href="#" data-reg="complete">Începe perioada de probă</a>
       </div>
     </div>
   </div>
@@ -245,6 +278,76 @@ footer .fbrand{display:flex;align-items:center;gap:10px;font-family:var(--font-d
     <span>© 2026 Inspecto · Creat de un inspector ITP, pentru inspectori ITP.</span>
   </div>
 </footer>
+
+<div class="reg-ov" id="regOv" aria-hidden="true">
+  <form class="reg-card" id="regForm" autocomplete="on">
+    <button type="button" class="reg-x" data-reg-close aria-label="Închide">&times;</button>
+    <h3>Începe perioada de probă</h3>
+    <div class="reg-sub">30 de zile gratuit. Fără contract.</div>
+    <div class="reg-seg">
+      <button type="button" data-plan-sel="basic">Basic · 129 RON</button>
+      <button type="button" data-plan-sel="complete">Complet · 199 RON</button>
+    </div>
+    <div class="reg-seg">
+      <button type="button" data-ent-sel="persoana_fizica">Persoană fizică</button>
+      <button type="button" data-ent-sel="persoana_juridica">Persoană juridică</button>
+    </div>
+    <div class="reg-grid"><div class="reg-f"><label>Prenume</label><input name="firstName" required></div><div class="reg-f"><label>Nume</label><input name="lastName" required></div></div>
+    <div class="reg-f"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
+    <div class="reg-f"><label>Confirmă email</label><input name="confirmEmail" type="email" required></div>
+    <div class="reg-grid"><div class="reg-f"><label>Parolă</label><input name="password" type="password" autocomplete="new-password" required></div><div class="reg-f"><label>Confirmă parola</label><input name="confirmPassword" type="password" required></div></div>
+    <div class="reg-f"><label>Telefon</label><input name="phone" type="tel" placeholder="07xxxxxxxx"></div>
+    <div class="reg-f"><label>Nr. stație ITP</label><input name="itpStationNumber"></div>
+    <div class="reg-grid"><div class="reg-f"><label>Județ</label><input name="billingCounty"></div><div class="reg-f"><label>Oraș</label><input name="billingCity"></div></div>
+    <div class="reg-f"><label>Stradă și număr</label><input name="billingStreet"></div>
+    <div class="pj-only">
+      <div class="reg-f"><label>Nume firmă</label><input name="companyName"></div>
+      <div class="reg-grid"><div class="reg-f"><label>CUI</label><input name="codFiscal"></div><div class="reg-f"><label>Nr. Reg. Comerțului</label><input name="nrRegistrulComertului"></div></div>
+      <div class="reg-f"><label>Număr inspectori</label><input name="inspectors" type="number" min="1" value="1"></div>
+    </div>
+    <div class="reg-terms"><input type="checkbox" name="terms" id="regTerms" required><label for="regTerms" style="color:var(--muted)">Sunt de acord cu termenii și condițiile și cu prelucrarea datelor.</label></div>
+    <div class="reg-err" id="regErr"></div>
+    <button type="submit" class="btn btn-primary" style="width:100%" id="regGo">Primele 30 de zile gratuit</button>
+  </form>
+</div>
+
+<script type="module">
+// --- Wiring UI (plan/entitate/deschidere) — rulează ÎNAINTEA oricărei citiri de env ---
+const ov=document.getElementById('regOv'),form=document.getElementById('regForm'),errEl=document.getElementById('regErr'),go=document.getElementById('regGo');
+let plan='complete',ent='persoana_fizica';
+function sync(){document.querySelectorAll('[data-plan-sel]').forEach(b=>b.setAttribute('aria-selected',b.getAttribute('data-plan-sel')===plan));document.querySelectorAll('[data-ent-sel]').forEach(b=>b.setAttribute('aria-selected',b.getAttribute('data-ent-sel')===ent));ov.classList.toggle('pj',ent==='persoana_juridica');}
+function open(p){plan=p||'complete';errEl.textContent='';sync();ov.classList.add('on');}
+function close(){ov.classList.remove('on');}
+document.querySelectorAll('[data-reg]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();open(b.getAttribute('data-reg'));}));
+document.querySelectorAll('[data-reg-close]').forEach(b=>b.addEventListener('click',close));
+ov.addEventListener('click',e=>{if(e.target===ov)close();});
+document.querySelectorAll('[data-plan-sel]').forEach(b=>b.addEventListener('click',()=>{plan=b.getAttribute('data-plan-sel');sync();}));
+document.querySelectorAll('[data-ent-sel]').forEach(b=>b.addEventListener('click',()=>{ent=b.getAttribute('data-ent-sel');sync();}));
+sync();
+
+// --- Env + trimitere spre Stripe ---
+let ENV={};try{ENV=(import.meta.env||{});}catch(e){}
+const SB_URL=(ENV.VITE_SUPABASE_URL||'').replace(/\/+$/,'');
+const SB_KEY=ENV.VITE_SUPABASE_ANON_KEY||'';
+form.addEventListener('submit',async e=>{
+  e.preventDefault();errEl.textContent='';
+  const f=new FormData(form),g=k=>(f.get(k)||'').toString().trim();
+  if(!SB_URL||!SB_KEY){errEl.textContent='Configurare Supabase lipsă (VITE_SUPABASE_URL / ANON_KEY).';return;}
+  if(g('email')!==g('confirmEmail')){errEl.textContent='Adresele de email nu se potrivesc.';return;}
+  if(g('password')!==g('confirmPassword')){errEl.textContent='Parolele nu se potrivesc.';return;}
+  if(!f.get('terms')){errEl.textContent='Trebuie să accepți termenii și condițiile.';return;}
+  const numInspectors=ent==='persoana_juridica'?(parseInt(g('inspectors'))||1):1;
+  const body={entityType:ent,firstName:g('firstName'),lastName:g('lastName'),email:g('email'),password:g('password'),phone:g('phone'),itpStationNumber:g('itpStationNumber'),billingPeriod:'monthly',subscriptionPlan:plan,language:'ro',referralCode:'',billingCounty:g('billingCounty'),billingCity:g('billingCity'),billingStreet:g('billingStreet'),numInspectors,terms:true,marketing:false};
+  if(ent==='persoana_juridica'){body.companyName=g('companyName');body.codFiscal=g('codFiscal');body.nrRegistrulComertului=g('nrRegistrulComertului');body.inspectors=numInspectors;}
+  go.disabled=true;go.textContent='Se pregătește plata…';
+  try{
+    const res=await fetch(SB_URL+'/functions/v1/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify(body)});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||!data.url){errEl.textContent=(data&&data.error)||'Nu s-a putut crea sesiunea de plată.';go.disabled=false;go.textContent='Primele 30 de zile gratuit';return;}
+    window.location.href=data.url;
+  }catch(err){errEl.textContent='Eroare de rețea. Reîncearcă.';go.disabled=false;go.textContent='Primele 30 de zile gratuit';}
+});
+</script>
 
 </body>
 </html>
