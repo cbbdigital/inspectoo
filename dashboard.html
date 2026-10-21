@@ -723,7 +723,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     +'<div class="eyebrow" style="margin:4px 2px -4px">Stație</div>'
     +'<div class="list">'
       +'<button class="li" data-sheet="schedule"><span class="ico">'+svg('cal',18)+'</span><span class="tx"><div class="t">Program de lucru</div><div class="d">Intervalul în care primești programări</div></span>'+svg('chev',16)+'</button>'
-      +'<button class="li" data-sheet="inspectors"><span class="ico">'+svg('users',18)+'</span><span class="tx"><div class="t">Inspectori</div><div class="d">'+S.inspectors.length+' activi</div></span>'+svg('chev',16)+'</button>'
+      +'<button class="li" data-sheet="inspectors"><span class="ico">'+svg('shield',18)+'</span><span class="tx"><div class="t">Stații ITP</div><div class="d">'+S.inspectors.length+' stații</div></span>'+svg('chev',16)+'</button>'
     +'</div>'
     +'<div class="eyebrow" style="margin:4px 2px -4px">Mesaje</div>'
     +'<div class="list">'
@@ -752,12 +752,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     });
   }
   function sheetInspectorsList(){
-    openSheet('<h3>Inspectori</h3><div class="muted" style="font-size:13px">Planul curent permite 2 inspectori · '+S.inspectors.length+'/2 folosiți.</div>'
-      +'<button class="btn primary full" style="margin-top:14px" data-sheet="addinsp">'+svg('plus',18)+'Adaugă inspector</button>'
+    openSheet('<h3>Stații ITP</h3><div class="muted" style="font-size:13px">Planul curent permite 2 stații ITP · '+S.inspectors.length+'/2 folosite.</div>'
+      +'<button class="btn primary full" style="margin-top:14px" data-sheet="addinsp">'+svg('plus',18)+'Adaugă stație ITP</button>'
       +'<div class="card" style="margin-top:12px">'+S.inspectors.map(function(i){
-        return '<button class="cli" data-inspector="'+i.id+'"><span class="av">'+esc(i.nm[0])+'</span>'
-          +'<span class="info"><span style="display:flex;align-items:center;gap:8px"><span class="nm">'+esc(i.nm)+'</span>'+(i.role==='owner'?'<span class="chip info">Proprietar</span>':'')+'</span>'
-          +'<span class="cx"><span class="chip ok">Activ</span><span class="muted">Azi '+i.today+' · Săpt. '+i.week+'</span></span></span>'
+        return '<button class="cli" data-inspector="'+i.id+'"><span class="av">'+esc((i.nm||'S')[0])+'</span>'
+          +'<span class="info"><span style="display:flex;align-items:center;gap:8px"><span class="nm">'+esc(i.nm)+'</span>'+(i.role==='owner'?'<span class="chip info">Principală</span>':'')+'</span>'
+          +'<span class="cx"><span class="chip ok">Activă</span><span class="muted">'+(i.auth?'RAR '+esc(i.auth):'—')+'</span></span></span>'
           +svg('chev',16)+'</button>';
       }).join('')+'</div>');
   }
@@ -825,16 +825,35 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     var weekDone=Math.round(week*0.82);
     var h='<div class="tiles">'
       +'<div class="tile hl"><div class="n">'+today.length+'</div><div class="l">Programări azi</div></div>'
-      +'<div class="tile"><div class="n">'+actIns+'</div><div class="l">Inspectori activi</div></div>'
+      +'<div class="tile"><div class="n">'+S.inspectors.length+'</div><div class="l">Stații ITP</div></div>'
       +'<div class="tile"><div class="n">'+week+'</div><div class="l">Total săptămânal</div></div></div>'
       +'<div class="card card-pad"><h2 style="font-size:16px">Prezentare Performanță</h2>'
         +barRow('Rată de finalizare (Astăzi)',pct(done,today.length))
         +barRow('Rată de finalizare (Această săptămână)',pct(weekDone,week))+'</div>'
+      +admReferral()
       +'<div class="card card-pad"><h2 style="font-size:16px">Statistici mesaje</h2>'
         +'<div style="margin-top:8px"><span class="chip '+(S.plan==='complete'?'ok':'info')+'">Pachet '+(S.plan==='complete'?'Complete':'Basic')+'</span><span class="muted" style="font-size:12px;margin-left:8px">'+(S.plan==='complete'?'3 SMS active':'1 SMS activ')+'</span></div>'
         +'<div class="muted" style="font-size:12.5px;margin-top:8px">Mesaje SMS trimise către clienți</div>'
         +'<div class="statbar" style="margin-top:12px;box-shadow:none"><span class="ok"><b>'+S.msg.sent+'</b>trimise</span><i></i><span class="accent"><b>'+S.msg.thanks+'</b>mulțumire</span><i></i><span><b>'+S.msg.failed+'</b>eșuate</span></div></div>';
     return h;
+  }
+  function admReferral(){
+    setTimeout(fillReferral,0);
+    return '<div class="card card-pad" id="refCard"><div style="display:flex;align-items:center;gap:10px"><span style="width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:0 0 auto">'+svg('shield',18)+'</span><h2 style="font-size:16px;margin:0">Cod de recomandare</h2></div>'
+      +'<div class="muted" style="font-size:12.5px;margin-top:6px">Recomandă un coleg și primești 1 lună gratuită când se înregistrează cu codul tău.</div>'
+      +'<div class="statbar" style="margin-top:12px;box-shadow:none;align-items:center"><span style="flex:1"><b id="ref_code" style="font-family:var(--font-d);font-size:17px;letter-spacing:.5px">—</b></span><button class="btn soft" data-copyref="1" style="padding:8px 14px">'+svg('copy',16)+'Copiază</button></div>'
+      +'<div class="tiles" style="margin-top:12px"><div class="tile"><div class="n" id="ref_done">0/1</div><div class="l">Finalizate</div></div><div class="tile"><div class="n" id="ref_pend">0</div><div class="l">În așteptare</div></div><div class="tile"><div class="n" id="ref_total">0</div><div class="l">Total</div></div></div></div>';
+  }
+  function fillReferral(){
+    var el=document.getElementById('ref_code'); if(!el) return;
+    if(!window.__inspectoRef){ el.textContent='—'; return; }
+    window.__inspectoRef().then(function(r){
+      r=r||{};
+      var c=document.getElementById('ref_code'); if(c) c.textContent=r.code||'—';
+      var d=document.getElementById('ref_done'); if(d) d.textContent=(r.completed||0)+'/1';
+      var p=document.getElementById('ref_pend'); if(p) p.textContent=(r.pending||0);
+      var t=document.getElementById('ref_total'); if(t) t.textContent=(r.total||0);
+    }).catch(function(){});
   }
   function admInspectors(){
     var h='<div class="card card-pad" style="display:flex;align-items:center;gap:12px"><span style="width:36px;height:36px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:0 0 auto">'+svg('users',18)+'</span><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">Planul curent permite 2 inspectori</div><div class="muted" style="font-size:12px">'+S.inspectors.length+' / 2 folosiți</div></div></div>'
@@ -859,33 +878,29 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       +'<button class="btn soft full" data-tab="clients">'+svg('users',17)+'Vezi clienții</button>';
   }
   function sheetAddInspector(){
-    openSheet('<h3>Adaugă inspector</h3><div class="muted" style="font-size:13px">Planul curent permite 2 inspectori.</div>'
-      +'<div class="field"><label>Nume complet</label><input id="i_nm" placeholder="ex. Mihai Dobre"></div>'
-      +'<div class="field"><label>Email</label><input id="i_em" inputmode="email" placeholder="nume@inspecto.ro"></div>'
-      +'<div class="row2"><div class="field"><label>Telefon</label><input id="i_ph" inputmode="tel" placeholder="07xx xxx xxx"></div>'
-      +'<div class="field"><label>Nr. autorizație</label><input id="i_au" placeholder="RAR-VN-000"></div></div>'
-      +'<button class="btn primary full" id="i_save" style="margin-top:18px">'+svg('plus',18)+'Adaugă inspectorul</button>');
+    openSheet('<h3>Adaugă stație ITP</h3><div class="muted" style="font-size:13px">Planul curent permite 2 stații ITP.</div>'
+      +'<div class="field"><label>Nume stație</label><input id="i_nm" placeholder="ex. Stația ITP Centru"></div>'
+      +'<div class="field"><label>Nr. autorizație RAR</label><input id="i_au" placeholder="RAR-VN-000"></div>'
+      +'<div class="field"><label>Adresă</label><input id="i_ad" placeholder="Stradă, număr, oraș"></div>'
+      +'<button class="btn primary full" id="i_save" style="margin-top:18px">'+svg('plus',18)+'Adaugă stația</button>');
     $('#i_save').addEventListener('click',function(){
-      var nm=$('#i_nm').value.trim()||'Inspector nou';
-      S.inspectors.push({id:Date.now(),nm:nm,role:'inspector',status:'activ',today:0,week:0,email:$('#i_em').value.trim(),phone:$('#i_ph').value.trim(),auth:$('#i_au').value.trim()||'—'});
-      closeSheet();render();toast('Inspector adăugat');
+      var nm=$('#i_nm').value.trim()||'Stație nouă';
+      S.inspectors.push({id:Date.now(),nm:nm,role:'inspector',status:'activ',today:0,week:0,auth:$('#i_au').value.trim()||'—',address:$('#i_ad').value.trim()});
+      closeSheet();render();toast('Stație adăugată');
     });
-    bindPhone($('#i_ph'));
   }
   function sheetInspector(id){
     var i=S.inspectors.filter(function(x){return x.id==id})[0];if(!i)return;
     function opt(v,l){return '<option value="'+v+'"'+(i.status===v?' selected':'')+'>'+l+'</option>'}
-    openSheet('<h3>Editează inspector</h3>'+(i.role==='owner'?'<div style="margin:6px 0 2px"><span class="chip info">Proprietar</span></div>':'')
-      +'<div class="field"><label>Nume complet</label><input id="i_nm" value="'+esc(i.nm)+'"></div>'
-      +'<div class="field"><label>Email</label><input id="i_em" inputmode="email" value="'+esc(i.email||'')+'"></div>'
-      +'<div class="row2"><div class="field"><label>Telefon</label><input id="i_ph" inputmode="tel" value="'+esc(i.phone||'')+'"></div>'
-      +'<div class="field"><label>Nr. autorizație</label><input id="i_au" value="'+esc(i.auth||'')+'"></div></div>'
-      +'<div class="field"><label>Status</label><select id="i_st">'+opt('activ','Activ')+opt('inactiv','Inactiv')+'</select></div>'
+    openSheet('<h3>Editează stația</h3>'+(i.role==='owner'?'<div style="margin:6px 0 2px"><span class="chip info">Stație principală</span></div>':'')
+      +'<div class="field"><label>Nume stație</label><input id="i_nm" value="'+esc(i.nm)+'"></div>'
+      +'<div class="field"><label>Nr. autorizație RAR</label><input id="i_au" value="'+esc(i.auth||'')+'"></div>'
+      +'<div class="field"><label>Adresă</label><input id="i_ad" value="'+esc(i.address||'')+'"></div>'
+      +'<div class="field"><label>Status</label><select id="i_st">'+opt('activ','Activă')+opt('inactiv','Inactivă')+'</select></div>'
       +'<div class="card" style="margin-top:14px"><div class="sec-h" style="padding:12px 14px 2px"><h2 style="font-size:14px">Program de lucru</h2></div>'
       +[['Luni–Sâmbătă','08:00–20:00'],['Duminică','Liber']].map(function(r){return '<div class="kv" style="padding:11px 14px"><span class="k">'+r[0]+'</span><span class="v '+(r[1]==='Liber'?'muted':'')+'">'+r[1]+'</span></div>'}).join('')+'</div>'
       +'<button class="btn primary full" style="margin-top:16px" data-savinsp="'+id+'">'+svg('check',18)+'Salvează modificările</button>'
-      +(i.role!=='owner'?'<button class="btn soft full" style="margin-top:10px;color:var(--bad)" data-delinsp="'+id+'">'+svg('out',17)+'Șterge inspector</button>':''));
-    bindPhone($('#i_ph'));
+      +(i.role!=='owner'?'<button class="btn soft full" style="margin-top:10px;color:var(--bad)" data-delinsp="'+id+'">'+svg('out',17)+'Șterge stația</button>':''));
   }
 
   /* ---- sheets ---- */
@@ -1565,8 +1580,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     if(el.hasAttribute('data-adminback')){S.adminOpen=false;render();window.scrollTo(0,0);return}
     if(el.hasAttribute('data-adm')){S.adminTab=el.getAttribute('data-adm');render();return}
     if(el.hasAttribute('data-inspector')){sheetInspector(el.getAttribute('data-inspector'));return}
-    if(el.hasAttribute('data-savinsp')){var sid=el.getAttribute('data-savinsp');var ins=S.inspectors.filter(function(x){return x.id==sid})[0];if(ins){ins.nm=$('#i_nm').value.trim()||ins.nm;ins.email=$('#i_em').value.trim();ins.phone=$('#i_ph').value.trim();ins.auth=$('#i_au').value.trim();ins.status=$('#i_st').value;}closeSheet();render();toast('Inspector actualizat');return}
-    if(el.hasAttribute('data-delinsp')){var iid=el.getAttribute('data-delinsp');S.inspectors=S.inspectors.filter(function(x){return x.id!=iid});closeSheet();render();toast('Inspector șters');return}
+    if(el.hasAttribute('data-savinsp')){var sid=el.getAttribute('data-savinsp');var ins=S.inspectors.filter(function(x){return x.id==sid})[0];if(ins){ins.nm=$('#i_nm').value.trim()||ins.nm;ins.auth=$('#i_au').value.trim();var _ad=$('#i_ad');if(_ad)ins.address=_ad.value.trim();ins.status=$('#i_st').value;}closeSheet();render();toast('Stație actualizată');return}
+    if(el.hasAttribute('data-delinsp')){var iid=el.getAttribute('data-delinsp');S.inspectors=S.inspectors.filter(function(x){return x.id!=iid});closeSheet();render();toast('Stație ștearsă');return}
+    if(el.hasAttribute('data-copyref')){var _rc=document.getElementById('ref_code');var _t=_rc?(_rc.textContent||'').trim():'';if(_t&&_t!=='—'){try{navigator.clipboard.writeText(_t);toast('Cod copiat','copy');}catch(e){toast('Nu s-a putut copia');}}else{toast('Nu există cod de recomandare');}return}
     if(el.hasAttribute('data-sheet')){var sm={new:sheetNew,photos:sheetPhotos,ocr:sheetOcr,myclients:sheetMyClients,schedule:sheetSchedule,notif:sheetNotif,addinsp:sheetAddInspector,station:sheetStation,inspectors:sheetInspectorsList,smscfg:sheetSmsCfg,admin:sheetAdmin};var s=el.getAttribute('data-sheet');if(sm[s])sm[s]();return}
     if(el.hasAttribute('data-doc')){sheetDoc(el.getAttribute('data-doc'));return}
     if(el.hasAttribute('data-plan')){var sco=$('#sm_co'),smp=$('#sm_mp');if(sco)S.smsCfg.company=sco.value;if(smp)S.smsCfg.maps=smp.value;S.plan=el.getAttribute('data-plan');sheetSmsCfg();return}
@@ -1589,8 +1605,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       return}
     if(el.hasAttribute('data-start')){var id=el.getAttribute('data-start');S.appts.forEach(function(a){if(a.id==id)a.status='finalizat'});closeSheet();render();toast('Inspecție finalizată');return}
     if(el.hasAttribute('data-result')){sheetResult(el.getAttribute('data-result'));return}
-    if(el.hasAttribute('data-setres')){var rid=el.getAttribute('data-setres'),lbl=el.getAttribute('data-lbl'),cls=el.getAttribute('data-cls'),act=el.getAttribute('data-act'),tpi=el.getAttribute('data-tpi');S.appts.forEach(function(a){if(a.id==rid){a.status='finalizat';a.result=lbl;a.resultCls=cls}});closeSheet();render();
-      if(window.__inspectoWrite&&act){toast('Se salvează…','clock');window.__inspectoWrite.setResult(rid,act,tpi).then(function(r){if(r&&r.error){toast('Eroare: '+r.error,'shield');}else if(r&&r.sms){toast('Rezultat salvat · SMS trimis','sms');}else{toast('Rezultat salvat');}});}
+    if(el.hasAttribute('data-setres')){var rid=el.getAttribute('data-setres'),lbl=el.getAttribute('data-lbl'),cls=el.getAttribute('data-cls'),act=el.getAttribute('data-act'),tpi=el.getAttribute('data-tpi');var _ap=null;S.appts.forEach(function(a){if(a.id==rid){_ap=a;a.status='finalizat';a.result=lbl;a.resultCls=cls}});closeSheet();render();
+      var _rid=(_ap&&(_ap.dbid||_ap.id))||rid;
+      if(window.__inspectoWrite&&act){toast('Se salvează…','clock');window.__inspectoWrite.setResult(_rid,act,tpi).then(function(r){if(r&&r.error){toast('Eroare: '+r.error,'shield');}else if(r&&r.sms){toast('Rezultat salvat · SMS trimis','sms');}else{toast('Rezultat salvat');}});}
       else{toast('Rezultat: '+lbl);}
       return}
     if(el.hasAttribute('data-copy')){var tx=el.getAttribute('data-copy');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tx).then(function(){toast('Număr copiat')},function(){toast('Număr: '+tx)})}else{toast('Număr: '+tx)}return}
