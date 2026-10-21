@@ -14,7 +14,7 @@ function cleanUrl(u){
 const URL = cleanUrl(import.meta.env.VITE_SUPABASE_URL);
 const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY||'').trim().replace(/^["']+|["']+$/g,'');
 
-const READONLY = true; // FAZA 1 — nu scriem în bază
+const READONLY = false; // FAZA 2 — scriere activă (creare/editare/ștergere + poze + SMS)
 
 function banner(text, kind){
   let el = document.getElementById('bootBanner');
@@ -134,6 +134,8 @@ window.__inspectoWrite = {
   // act: 'passed' | 'failed' | 'cancel' ; tpiType: '6_months' | '1_year' | '2_year'
   async setResult(appointmentId, act, tpiType){
     if(!appointmentId || !act) return { error:'Lipsește programarea' };
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(appointmentId)))
+      return { error:'Programarea nu e salvată în baza de date încă. Salveaz-o întâi, apoi marchează rezultatul.' };
     try{
       if(act === 'cancel'){
         const { error } = await sb.from('appointments')
@@ -176,7 +178,68 @@ window.__inspectoWrite = {
       });
       return { error: error && (error.message||String(error)) };
     }catch(e){ return { error: e.message||String(e) }; }
+  },
+  // Creare programare nouă → INSERT appointments (ca aplicația veche)
+  async saveAppointment(a){
+    if(!AUTH_UID) return { error:'Nelogat' };
+    try{
+      var car=(a.car||'').trim(), sp=car.indexOf(' ');
+      var make=sp>0?car.slice(0,sp):car, model=sp>0?car.slice(sp+1):'';
+      var time=(a.time||'').trim(); if(/^\d{1,2}:\d{2}$/.test(time)) time=time+':00';
+      var row={ inspector_id:AUTH_UID, user_id:(INSPECTOR&&INSPECTOR.service_provider_id)||AUTH_UID,
+        client_name:a.nm||'', client_phone:a.phone||'', vehicle_make:make||'', vehicle_model:model||'',
+        license_plate:(a.plate||'').toUpperCase().trim(), appointment_date:a.date||null, appointment_time:time||null,
+        tpi_type:null, status:'scheduled' };
+      var r=await sb.from('appointments').insert(row).select('id').maybeSingle();
+      if(r.error) return { error:r.error.message };
+      return { error:null, id:r.data&&r.data.id };
+    }catch(e){ return { error:e.message||String(e) }; }
+  },
+  // Editare programare → UPDATE appointments
+  async updateAppointment(id, a){
+    if(!id) return { error:'Lipsește programarea' };
+    try{
+      var car=(a.car||'').trim(), sp=car.indexOf(' ');
+      var make=sp>0?car.slice(0,sp):car, model=sp>0?car.slice(sp+1):'';
+      var time=(a.time||'').trim(); if(/^\d{1,2}:\d{2}$/.test(time)) time=time+':00';
+      var patch={ client_name:a.nm, client_phone:a.phone, vehicle_make:make, vehicle_model:model,
+        license_plate:(a.plate||'').toUpperCase().trim(), appointment_date:a.date, appointment_time:time,
+        updated_at:new Date().toISOString() };
+      var smap={azi:'confirmed',asteptare:'scheduled',finalizat:'completed'};
+      if(a.status&&smap[a.status]) patch.status=smap[a.status];
+      var r=await sb.from('appointments').update(patch).eq('id',id);
+      return { error: r.error && r.error.message };
+    }catch(e){ return { error:e.message||String(e) }; }
+  },
+  // Ștergere programare → DELETE appointments
+  async deleteAppointment(id){
+    if(!id) return { error:'Lipsește programarea' };
+    try{ var r=await sb.from('appointments').delete().eq('id',id); return { error:r.error&&r.error.message }; }
+    catch(e){ return { error:e.message||String(e) }; }
+  },
+  // Ștergere client manual → DELETE manual_clients
+  async deleteClient(c){
+    try{
+      var q=sb.from('manual_clients').delete();
+      if(c&&c.id&&/^[0-9a-f-]{36}$/i.test(String(c.id))) q=q.eq('id',c.id);
+      else q=q.eq('license_plate',((c&&(c.plate||c.license_plate))||'').toUpperCase().replace(/\s+/g,''));
+      var r=await q; return { error:r.error&&r.error.message };
+    }catch(e){ return { error:e.message||String(e) }; }
   }
+};
+
+// Cod de recomandare (ca în aplicația veche: users.referral_code + tabelul referrals)
+window.__inspectoRef = async function(){
+  try{
+    if(!AUTH_UID) return { code:'', completed:0, pending:0, total:0 };
+    const { data:u } = await sb.from('users').select('referral_code').eq('id', AUTH_UID).maybeSingle();
+    const code = (u && u.referral_code) || '';
+    const { data:refs } = await sb.from('referrals').select('status').eq('referrer_user_id', AUTH_UID);
+    const arr = refs || [];
+    const completed = arr.filter(r=>r.status==='completed').length;
+    const pending = arr.filter(r=>r.status==='pending').length;
+    return { code, completed, pending, total: arr.length };
+  }catch(e){ return { code:'', completed:0, pending:0, total:0, error:e.message||String(e) }; }
 };
 
 async function ready(){
@@ -184,21 +247,47 @@ async function ready(){
   await new Promise(res=>document.addEventListener('inspecto-ready', res, { once:true }));
 }
 
+function _ntLabel(t){ t=(t||'').toLowerCase(); if(t.indexOf('itp')>=0||t.indexOf('expir')>=0)return 'Reminder ITP'; if(t.indexOf('complet')>=0||t.indexOf('inspection')>=0)return 'Confirmare inspecție'; if(t.indexOf('reminder')>=0||t.indexOf('appointment')>=0)return 'Reminder programare'; return t||'SMS'; }
+function _ntWhen(iso){ try{var d=new Date(iso);return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}catch(e){return '';} }
+function _mapNotif(r){
+  var plate=r.license_plate||r.plate||r.vehicle_plate||r.car_plate||'—';
+  var name=r.client_name||r.name||'';
+  var car=((r.vehicle_make||'')+' '+(r.vehicle_model||'')).trim()||r.vehicle||'';
+  var status=(r.status||'').toLowerCase();
+  var sent=(status==='sent'||status==='delivered'||status==='success'||status==='ok');
+  var failed=(status==='failed'||status==='error'||status==='undelivered'||status==='rejected');
+  var reason=r.error_message||r.error||r.failure_reason||r.reason||r.error_reason||r.status_message||r.status_detail||r.detail||'';
+  var typ=_ntLabel(r.message_type||r.type);
+  var nm=name||car||plate; if(!nm||!String(nm).length)nm='—';
+  return { nm:nm, plate:plate, car:car, type: failed?'Netrimis':(sent?'Trimis':(status||'—')), cls: failed?'bad':(sent?'ok':'warn'),
+    when:_ntWhen(r.created_at||r.sent_at||r.inserted_at), desc: failed?('Motiv: '+(reason||'necunoscut'))+(typ?' · '+typ:''):(typ+(name?' · '+name:'')),
+    failed:failed, sent:sent };
+}
+async function fetchNotifs(){
+  try{
+    const since = new Date(Date.now()-3*864e5).toISOString(); // ~1 zi înainte și una după
+    const { data, error } = await sb.from('whatsapp_notifications').select('*').gte('created_at', since).order('created_at',{ascending:false}).limit(100);
+    if(error||!data) return [];
+    return data.map(_mapNotif);
+  }catch(e){ return []; }
+}
+
 async function loadData(){
   banner('Se încarcă datele…');
-  const [a, c, p] = await Promise.all([
+  const [a, c, p, nf] = await Promise.all([
     fetchAppointments(sb),
     fetchManualClients(sb),
     fetchPhotos(sb),
+    fetchNotifs(),
   ]);
   const err = a.error || c.error || p.error;
   await ready();
   await pushUser();
   setupRealtime();
-  window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data });
+  window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf });
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
-  else { banner('Date reale încărcate · '+a.data.length+' programări · '+c.data.length+' clienți (doar citire)', 'ok'); }
+  else { banner('Conectat · '+a.data.length+' programări · '+c.data.length+' clienți', 'ok'); }
 }
 
 /* ---- Login minimal (necesar pentru RLS) ---- */
