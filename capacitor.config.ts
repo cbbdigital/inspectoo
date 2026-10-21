@@ -10,11 +10,14 @@ const config: CapacitorConfig = {
   appName: 'Inspecto',
   webDir: 'dist',
   server: {
-    url: 'https://inspectooo.netlify.app',
+    // aplicația e la /dashboard (landing-ul public e la /)
+    url: 'https://inspectooo.netlify.app/dashboard',
     cleartext: false
   },
   ios: {
-    contentInset: 'always'
+    // 'never' = WKWebView ocupă tot ecranul (edge-to-edge); safe-area o gestionează
+    // CSS prin env(safe-area-inset-*). Cu 'always' se dublau marginile sus/jos.
+    contentInset: 'never'
   }
 };
 
