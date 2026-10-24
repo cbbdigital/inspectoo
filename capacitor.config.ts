@@ -17,7 +17,12 @@ const config: CapacitorConfig = {
   ios: {
     // 'never' = WKWebView ocupă tot ecranul (edge-to-edge); safe-area o gestionează
     // CSS prin env(safe-area-inset-*). Cu 'always' se dublau marginile sus/jos.
-    contentInset: 'never'
+    contentInset: 'never',
+    // Scroll-ul îl face CSS-ul (.scroll overflow:auto). Dezactivăm scroll-ul nativ
+    // al WKWebView ca iOS să nu mai aplice inset-ul de safe-area după primul tap
+    // (ăsta crea distanța de sus care nu mai revenea).
+    scrollEnabled: false,
+    backgroundColor: '#0b1220'
   }
 };
 
