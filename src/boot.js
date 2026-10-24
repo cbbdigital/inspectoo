@@ -272,6 +272,22 @@ async function fetchNotifs(){
   }catch(e){ return []; }
 }
 
+// Stațiile ITP reale ale providerului (din tabelul inspectors)
+async function fetchInspectors(){
+  try{
+    if(!INSPECTOR || !INSPECTOR.service_provider_id) return [];
+    const { data, error } = await sb.from('inspectors').select('*').eq('service_provider_id', INSPECTOR.service_provider_id);
+    if(error || !data || !data.length) return [];
+    return data.map(function(r){
+      var nm=((r.first_name||'')+' '+(r.last_name||'')).trim()||r.name||r.email||'Stație ITP';
+      var st=(r.status||'active'); st=(st==='inactive'||st==='inactiv'||st==='disabled')?'inactiv':'activ';
+      return { id:r.id, nm:nm, role:r.is_owner?'owner':'inspector', status:st,
+        auth:r.authorization_number||r.rar_number||r.rar||r.auth||'', address:r.address||'',
+        email:r.email||'', phone:r.phone||'', today:0, week:0 };
+    });
+  }catch(e){ return []; }
+}
+
 async function loadData(){
   const [a, c, p, nf] = await Promise.all([
     fetchAppointments(sb),
@@ -282,8 +298,13 @@ async function loadData(){
   const err = a.error || c.error || p.error;
   await ready();
   await pushUser();
+  let insp = await fetchInspectors();
+  if(!insp.length && INSPECTOR){
+    insp = [{ id:INSPECTOR.id, nm:(window.__inspectoAuth.email||'Stația mea'), role:INSPECTOR.is_owner?'owner':'inspector',
+      status:'activ', auth:'', address:'', email:window.__inspectoAuth.email||'', phone:'', today:0, week:0 }];
+  }
   setupRealtime();
-  window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf });
+  window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf, inspectors:insp });
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
 }
