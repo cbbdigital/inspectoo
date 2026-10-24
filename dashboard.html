@@ -231,7 +231,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
 .nav{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:10.5px;font-weight:700;padding:8px 0;border-radius:14px}
 .nav[aria-selected="true"]{color:var(--accent)}
 .nav:active{transform:scale(.92)}
-.fab{width:60px;height:60px;border-radius:19px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;
+.fab{width:60px;height:60px;border-radius:19px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   justify-self:center;transform:translateY(-16px);box-shadow:0 12px 24px -6px color-mix(in srgb,var(--accent) 55%,transparent)}
 .fab:active{transform:translateY(-16px) scale(.95)}
 
@@ -361,6 +361,12 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
 .muted{color:var(--muted)}
 .center{text-align:center}
 .empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 16px;color:var(--muted);text-align:center}
+.subfolder{margin-top:12px}
+.subfolder>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);font-weight:700;font-size:13.5px;color:var(--ink)}
+.subfolder>summary::-webkit-details-marker{display:none}
+.subfolder>summary .fchev{margin-left:auto;transition:transform .2s}
+.subfolder[open]>summary .fchev{transform:rotate(90deg)}
+.subfolder>summary .sfico{width:18px;height:18px;stroke:var(--bad);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -519,7 +525,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   /* ---- data ---- */
   function platEU(p){var m=p.split(' ');return '<span class="plate"><span class="eu">RO</span><span class="pn">'+esc(p)+'</span></span>'}
   var ST={
-    azi:{cls:'ok',t:'confirmat'}, asteptare:{cls:'warn',t:'în așteptare'}, finalizat:{cls:'info',t:'finalizat'}
+    azi:{cls:'ok',t:'confirmat'}, asteptare:{cls:'warn',t:'în așteptare'}, finalizat:{cls:'info',t:'finalizat'}, anulat:{cls:'bad',t:'anulat'}
   };
   var S={
     tab:'azi', theme:null, q:'',
@@ -557,7 +563,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     function splitCar(s){s=(s||'').trim();var i=s.indexOf(' ');return i<0?{make:s,model:''}:{make:s.slice(0,i),model:s.slice(i+1)}}
     return {
       // appointments -> prototip
-      apptFromRow:function(r){r=r||{};return {id:r.id,date:r.appointment_date||'',time:(r.appointment_time||'').slice(0,5),nm:r.client_name||'',car:[r.vehicle_make,r.vehicle_model].filter(Boolean).join(' '),plate:r.license_plate||'',phone:r.client_phone||'',status:r.status||'azi',result:r.result||'',inspectorId:r.inspector_id||null}},
+      apptFromRow:function(r){r=r||{};var _sm={scheduled:'asteptare',pending:'asteptare',confirmed:'azi',completed:'finalizat',cancelled:'anulat',canceled:'anulat',no_show:'anulat'};return {id:r.id,date:r.appointment_date||'',time:(r.appointment_time||'').slice(0,5),nm:r.client_name||'',car:[r.vehicle_make,r.vehicle_model].filter(Boolean).join(' '),plate:r.license_plate||'',phone:r.client_phone||'',status:(_sm[r.status]||r.status||'azi'),result:r.result||'',inspectorId:r.inspector_id||null}},
       // prototip -> appointments
       apptToRow:function(a){a=a||{};var c=splitCar(a.car);return {appointment_date:a.date||null,appointment_time:a.time||null,client_name:a.nm||'',vehicle_make:c.make,vehicle_model:c.model,license_plate:a.plate||'',client_phone:a.phone||'',status:a.status||'azi',result:a.result||null,inspector_id:a.inspectorId||null}},
       // manual_clients -> prototip
@@ -604,7 +610,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   }
 
   function screenAzi(){
-    var today=S.appts.filter(function(a){return a.date===TODAY}).sort(function(a,b){return a.time.localeCompare(b.time)});
+    var today=S.appts.filter(function(a){return a.date===TODAY&&a.status!=='anulat'}).sort(function(a,b){return a.time.localeCompare(b.time)});
     var done=today.filter(function(a){return a.status==='finalizat'}).length;
     var pend=today.filter(function(a){return a.status!=='finalizat'}).length;
     var next=today.filter(function(a){return a.status!=='finalizat'})[0];
@@ -696,15 +702,21 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       +'<div class="tiles"><div class="tile"><div class="n">'+S.clients.length+'</div><div class="l">Total</div></div>'
       +'<div class="tile"><div class="n" style="color:var(--warn)">'+soon+'</div><div class="l">Expiră curând</div></div>'
       +'<div class="tile"><div class="n" style="color:var(--bad)">'+expS+'</div><div class="l">Expirate</div></div></div>';
-    h+='<div class="card">';
-    if(list.length){ h+=list.map(function(c){
+    function cliRow(c){
       var d=daysToExp(c.itp_expiry_date);var nm=c.client_name||'—';
       return '<button class="cli" data-client="'+c.id+'"><span class="av">'+esc(nm[0]||'•')+'</span>'
         +'<span class="info"><span class="nm">'+esc(nm)+'</span>'
         +'<span class="cx">'+platEU(c.license_plate)+'<span class="muted">'+esc(c.client_phone||'')+'</span></span></span>'
         +(d==null?'':itpChip(d))+'</button>';
-    }).join(''); } else { h+='<div class="empty">'+svg('users',26)+'<div>'+(S.q?'Niciun client găsit':'Niciun client încă. Adaugă manual sau importă din Excel.')+'</div></div>'; }
-    h+='</div>';
+    }
+    var active=list.filter(function(c){var d=daysToExp(c.itp_expiry_date);return d==null||d>=0;});
+    var expired=list.filter(function(c){var d=daysToExp(c.itp_expiry_date);return d!=null&&d<0;});
+    if(active.length){ h+='<div class="card">'+active.map(cliRow).join('')+'</div>'; }
+    else if(!expired.length){ h+='<div class="card"><div class="empty">'+svg('users',26)+'<div>'+(S.q?'Niciun client găsit':'Niciun client încă. Adaugă manual sau importă din Excel.')+'</div></div></div>'; }
+    if(expired.length){
+      h+='<details class="subfolder"'+(S.q?' open':'')+'><summary>'+svg('shield',18)+'<span>ITP expirat</span><span class="chip bad" style="margin-left:auto">'+expired.length+'</span></summary>'
+        +'<div class="card" style="margin-top:8px">'+expired.map(cliRow).join('')+'</div></details>';
+    }
     return h;
   }
 
@@ -790,14 +802,48 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     $('#sm_save').addEventListener('click',function(){S.smsCfg={company:$('#sm_co').value.trim(),maps:$('#sm_mp').value.trim(),phone:$('#sm_tel').value.trim()};closeSheet();toast('Configurare SMS salvată');});
   }
   function sheetDoc(kind){
+    function H(t){return '<b style="color:var(--ink);display:block;margin:16px 0 4px;font-size:13.5px">'+t+'</b>';}
+    var terms=
+      '<b style="color:var(--ink)">Termeni și condiții de utilizare – Inspecto</b><br>Ultima actualizare: [DATA]'
+      +H('1. Despre serviciu')+'Inspecto („Serviciul") este o aplicație SaaS furnizată de [DENUMIRE FURNIZOR], CUI [CUI], cu sediul în [ADRESĂ] („Furnizorul"), destinată stațiilor de inspecție tehnică periodică (ITP) pentru gestionarea programărilor, evidența inspecțiilor, stocarea fotografiilor și trimiterea de notificări SMS către clienți.'
+      +H('2. Contul și accesul')+'Serviciul se adresează exclusiv persoanelor juridice/stațiilor ITP autorizate. Sunteți responsabil de confidențialitatea datelor de autentificare și de toate acțiunile efectuate din contul dvs. Trebuie să aveți cel puțin 18 ani și capacitatea de a încheia contracte.'
+      +H('3. Abonament, prețuri și plată')+'Serviciul se oferă pe bază de abonament lunar (planurile Basic și Complete), cu o perioadă de probă gratuită de 30 de zile. După expirarea perioadei de probă, abonamentul se reînnoiește automat, lunar, până la anulare. Plățile sunt procesate de Stripe; Furnizorul nu stochează datele cardului. Prețurile sunt afișate în RON și pot include TVA conform legii. Anularea se poate face oricând din cont și produce efecte la finalul perioadei plătite curente; nu se acordă rambursări pentru perioada neutilizată, cu excepția cazurilor impuse de lege.'
+      +H('4. Obligațiile utilizatorului')+'Vă angajați să introduceți date corecte, să utilizați Serviciul conform legii și să obțineți consimțământul clienților finali pentru primirea de mesaje SMS, acolo unde legea îl impune. Răspundeți pentru legalitatea prelucrării datelor clienților dvs., în calitate de operator de date.'
+      +H('5. Notificări SMS')+'Serviciul trimite SMS-uri prin furnizori terți. Livrarea depinde de operatorii de telefonie și nu poate fi garantată. Furnizorul nu răspunde pentru întârzieri sau nelivrări cauzate de terți sau de date de contact incorecte.'
+      +H('6. Proprietate intelectuală')+'Serviciul, codul, mărcile și conținutul aparțin Furnizorului. Vă deținem datele introduse de dvs.; ne acordați dreptul limitat de a le procesa strict pentru furnizarea Serviciului.'
+      +H('7. Disponibilitate și limitarea răspunderii')+'Serviciul este oferit „ca atare", fără garanția disponibilității neîntrerupte. În limita permisă de lege, răspunderea totală a Furnizorului este limitată la suma plătită de dvs. în ultimele 12 luni. Furnizorul nu răspunde pentru daune indirecte sau pierderi de date cauzate de utilizare necorespunzătoare.'
+      +H('8. Suspendare și încetare')+'Putem suspenda sau închide contul în caz de neplată sau de încălcare a termenilor. Puteți înceta oricând prin anularea abonamentului.'
+      +H('9. Modificări')+'Putem actualiza termenii; vă vom notifica prin aplicație sau email. Continuarea utilizării după modificare înseamnă acceptarea noilor termeni.'
+      +H('10. Legea aplicabilă')+'Prezentul contract este guvernat de legea română. Litigiile se soluționează de instanțele competente de la sediul Furnizorului. Contact: [EMAIL CONTACT].';
+    var gdpr=
+      '<b style="color:var(--ink)">Politica de confidențialitate (GDPR)</b><br>Ultima actualizare: [DATA]'
+      +H('1. Operatorul platformei')+'Furnizorul Inspecto, [DENUMIRE FURNIZOR], CUI [CUI], [ADRESĂ], email [EMAIL CONTACT]. Pentru datele clienților finali ai stației, stația ITP este operatorul, iar Inspecto este persoană împuternicită (vezi DPA).'
+      +H('2. Ce date prelucrăm')+'Date de cont: nume, email, telefon, număr autorizație/stație, date de facturare. Date ale clienților finali (introduse de stație): nume, telefon, număr de înmatriculare, data expirării ITP, fotografii ale inspecției. Date tehnice: jurnale de utilizare, adresă IP, identificatori de sesiune.'
+      +H('3. Scopuri și temeiuri legale')+'Furnizarea Serviciului și gestionarea contului – executarea contractului (art. 6(1)(b) GDPR). Trimiterea de notificări SMS – consimțământul clientului final sau interesul legitim al stației (art. 6(1)(a)/(f)). Facturare și obligații contabile/fiscale – obligație legală (art. 6(1)(c)). Securitate și prevenirea fraudei – interes legitim (art. 6(1)(f)).'
+      +H('4. Furnizori și împuterniciți')+'Folosim furnizori terți care prelucrează date în numele nostru: Supabase (găzduire bază de date și fișiere), [FURNIZOR SMS, ex. SMSO.ro] (trimitere SMS), Stripe (procesare plăți), Netlify (găzduire aplicație). Fiecare este obligat contractual să respecte GDPR.'
+      +H('5. Transfer internațional')+'Dacă datele sunt transferate în afara SEE, acest lucru se face pe baza unor garanții adecvate (clauze contractuale standard ale Comisiei Europene).'
+      +H('6. Durata stocării')+'Datele de cont se păstrează pe durata contractului și conform termenelor legale (ex. documente fiscale 10 ani). Datele clienților finali se păstrează cât timp sunt necesare stației și se șterg la cererea acesteia sau la încetarea contului.'
+      +H('7. Drepturile dvs.')+'Aveți dreptul de acces, rectificare, ștergere, restricționare, portabilitate, opoziție și retragerea consimțământului în orice moment. Puteți depune plângere la ANSPDCP (www.dataprotection.ro). Pentru exercitarea drepturilor: [EMAIL CONTACT].'
+      +H('8. Securitate')+'Aplicăm măsuri tehnice și organizatorice adecvate: criptare în tranzit (HTTPS), control al accesului, autentificare și reguli de securitate la nivel de bază de date.'
+      +H('9. Cookie-uri și stocare locală')+'Folosim stocare locală strict pentru funcționarea aplicației (sesiune, preferințe de temă). Nu folosim cookie-uri de urmărire în scop publicitar.';
+    var dpa=
+      '<b style="color:var(--ink)">Acord de prelucrare a datelor (DPA)</b><br>Ultima actualizare: [DATA]'
+      +H('1. Părțile și obiectul')+'Operator: stația ITP care utilizează Inspecto. Persoană împuternicită: Furnizorul Inspecto. Prezentul acord reglementează prelucrarea datelor cu caracter personal de către Împuternicit în numele Operatorului, conform art. 28 GDPR, și face parte din Termenii de utilizare.'
+      +H('2. Natura și scopul prelucrării')+'Împuternicitul prelucrează datele exclusiv pentru furnizarea Serviciului: stocarea programărilor și a clienților, trimiterea notificărilor SMS, stocarea fotografiilor de inspecție și funcții conexe.'
+      +H('3. Categorii de date și persoane vizate')+'Persoane vizate: clienții finali ai stației. Categorii: nume, telefon, număr de înmatriculare, data expirării ITP, fotografii ale vehiculului/documentelor.'
+      +H('4. Obligațiile Împuternicitului')+'Prelucrează datele numai pe baza instrucțiunilor documentate ale Operatorului; asigură confidențialitatea persoanelor autorizate; implementează măsuri de securitate conform art. 32 GDPR; asistă Operatorul în a răspunde cererilor persoanelor vizate și în notificarea breșelor de securitate fără întârziere nejustificată.'
+      +H('5. Subîmputerniciți')+'Operatorul autorizează general utilizarea de subîmputerniciți: Supabase (găzduire/stocare), [FURNIZOR SMS] (SMS), Stripe (plăți), Netlify (găzduire). Împuternicitul rămâne răspunzător pentru respectarea GDPR de către aceștia și anunță Operatorul la schimbări.'
+      +H('6. Transferuri internaționale')+'Orice transfer în afara SEE se face cu garanții adecvate (clauze contractuale standard).'
+      +H('7. Ștergere și returnare')+'La încetarea Serviciului, Împuternicitul șterge sau returnează datele Operatorului, la alegerea acestuia, cu excepția cazurilor în care păstrarea este impusă de lege.'
+      +H('8. Audit')+'Împuternicitul pune la dispoziția Operatorului informațiile necesare pentru a demonstra conformitatea și permite audituri rezonabile, cu notificare prealabilă.';
     var D={
-      terms:{t:'Termeni și condiții',b:'Prin utilizarea aplicației Inspecto, sunteți de acord cu prezentii termeni. Serviciul oferă gestionarea programărilor ITP, notificări SMS către clienți și evidența inspecțiilor. Stația este responsabilă de corectitudinea datelor introduse și de obținerea consimțământului clienților pentru primirea mesajelor. Abonamentul se reînnoiește automat și poate fi anulat oricând din cont.'},
-      gdpr:{t:'Politica de confidențialitate (GDPR)',b:'Prelucrăm datele clienților (nume, telefon, nr. înmatriculare, date ITP) exclusiv pentru a trimite notificări despre expirarea inspecției și pentru evidența programărilor. Datele nu sunt vândute terților. Clienții au dreptul de acces, rectificare și ștergere a datelor. Mesajele SMS se trimit doar pe baza consimțământului. Pentru solicitări privind datele, contactați operatorul stației.'},
-      dpa:{t:'Acord de prelucrare a datelor (DPA)',b:'Inspecto acționează ca persoană împuternicită, prelucrând datele în numele stației (operator). Prelucrarea se face doar conform instrucțiunilor operatorului, cu măsuri tehnice și organizatorice adecvate de securitate. Subîmputerniciții (ex. furnizorul SMS) respectă aceleași obligații. La încetarea contractului, datele sunt șterse sau returnate operatorului.'}
+      terms:{t:'Termeni și condiții',b:terms},
+      gdpr:{t:'Politica de confidențialitate (GDPR)',b:gdpr},
+      dpa:{t:'Acord de prelucrare a datelor (DPA)',b:dpa}
     };
     var d=D[kind]||D.terms;
-    openSheet('<h3>'+d.t+'</h3><div class="muted" style="font-size:13.5px;line-height:1.65;margin-top:12px">'+d.b+'</div>'
-      +'<div class="muted center" style="font-size:11.5px;margin-top:16px">Document exemplu · prototip</div>');
+    openSheet('<h3>'+d.t+'</h3><div class="muted" style="font-size:13px;line-height:1.6;margin-top:10px">'+d.b+'</div>'
+      +'<div class="muted center" style="font-size:11.5px;margin-top:16px;line-height:1.5">Model orientativ. Completați câmpurile [ ] și consultați un jurist înainte de publicare.</div>');
   }
 
   /* ---- Admin panel (mobile) ---- */
@@ -817,12 +863,19 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       +'<div style="margin-top:14px">'+admOverview()+'</div>');
   }
   function admOverview(){
-    var today=S.appts.filter(function(a){return a.date===TODAY});
-    var done=today.filter(function(a){return a.status==='finalizat'}).length;
+    function isDone(a){var s=a.status;return s==='finalizat'||s==='completed'}
+    function isCanc(a){var s=a.status;return s==='cancelled'||s==='anulat'}
+    // Săptămâna curentă (luni–duminică) din programările reale
+    var _n=new Date();_n.setHours(0,0,0,0);var _dow=(_n.getDay()+6)%7;
+    var _mon=new Date(_n);_mon.setDate(_n.getDate()-_dow);var _sun=new Date(_mon);_sun.setDate(_mon.getDate()+6);
+    function _ymd(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+    var wStart=_ymd(_mon),wEnd=_ymd(_sun);
+    var today=S.appts.filter(function(a){return a.date===TODAY&&!isCanc(a)});
+    var done=today.filter(isDone).length;
     var pend=today.length-done;
-    var actIns=S.inspectors.filter(function(i){return i.status==='activ'}).length;
-    var week=S.inspectors.reduce(function(a,i){return a+i.week},0);
-    var weekDone=Math.round(week*0.82);
+    var weekAppts=S.appts.filter(function(a){return a.date>=wStart&&a.date<=wEnd&&!isCanc(a)});
+    var week=weekAppts.length;
+    var weekDone=weekAppts.filter(isDone).length;
     var h='<div class="tiles">'
       +'<div class="tile hl"><div class="n">'+today.length+'</div><div class="l">Programări azi</div></div>'
       +'<div class="tile"><div class="n">'+S.inspectors.length+'</div><div class="l">Stații ITP</div></div>'
@@ -831,10 +884,11 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
         +barRow('Rată de finalizare (Astăzi)',pct(done,today.length))
         +barRow('Rată de finalizare (Această săptămână)',pct(weekDone,week))+'</div>'
       +admReferral()
-      +'<div class="card card-pad"><h2 style="font-size:16px">Statistici mesaje</h2>'
+      +(function(){var nf=S.notifs||[];var nSent=nf.filter(function(m){return m.sent}).length;var nFail=nf.filter(function(m){return m.failed}).length;
+        return '<div class="card card-pad"><h2 style="font-size:16px">Statistici mesaje</h2>'
         +'<div style="margin-top:8px"><span class="chip '+(S.plan==='complete'?'ok':'info')+'">Pachet '+(S.plan==='complete'?'Complete':'Basic')+'</span><span class="muted" style="font-size:12px;margin-left:8px">'+(S.plan==='complete'?'3 SMS active':'1 SMS activ')+'</span></div>'
-        +'<div class="muted" style="font-size:12.5px;margin-top:8px">Mesaje SMS trimise către clienți</div>'
-        +'<div class="statbar" style="margin-top:12px;box-shadow:none"><span class="ok"><b>'+S.msg.sent+'</b>trimise</span><i></i><span class="accent"><b>'+S.msg.thanks+'</b>mulțumire</span><i></i><span><b>'+S.msg.failed+'</b>eșuate</span></div></div>';
+        +'<div class="muted" style="font-size:12.5px;margin-top:8px">SMS către clienți (ultimele zile)</div>'
+        +'<div class="statbar" style="margin-top:12px;box-shadow:none"><span class="ok"><b>'+nSent+'</b>trimise</span><i></i><span class="bad"><b>'+nFail+'</b>eșuate</span><i></i><span><b>'+nf.length+'</b>total</span></div></div>';})();
     return h;
   }
   function admReferral(){
@@ -1513,20 +1567,43 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       +'<button class="btn soft full" style="margin-top:14px" data-toast="Editare program (demo)">Editează programul</button>');
   }
   function sheetNotif(){
-    var msgs=(S.notifs||[]).slice().sort(function(a,b){return (b.failed?1:0)-(a.failed?1:0);});
-    var nSent=msgs.filter(function(m){return m.sent}).length,nFail=msgs.filter(function(m){return m.failed}).length;
-    var rows=msgs.map(function(m){
+    var msgs=(S.notifs||[]);
+    var sent=msgs.filter(function(m){return m.sent});
+    var fail=msgs.filter(function(m){return m.failed});
+    var TOMORROW=(function(){var d=new Date();d.setDate(d.getDate()+1);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)})();
+    var tmw=(S.appts||[]).filter(function(a){return a.date===TOMORROW&&a.status!=='finalizat'}).sort(function(a,b){return (a.time||'').localeCompare(b.time||'')});
+    function msgRow(m){
       var ini=(m.nm&&m.nm[0])?m.nm[0]:'•';
       return '<div class="appt" style="cursor:default;align-items:flex-start">'
         +'<span class="av" style="width:40px;height:40px">'+esc(ini)+'</span>'
         +'<span class="who"><span style="display:flex;align-items:center;gap:8px;justify-content:space-between"><span class="nm">'+esc(m.nm)+'</span><span class="chip '+m.cls+'">'+m.type+'</span></span>'
         +'<span class="cx" style="margin-top:5px">'+platEU(m.plate)+'<span class="muted">'+m.when+'</span></span>'
         +'<span class="muted" style="display:block;font-size:12.5px;margin-top:5px;line-height:1.4">'+esc(m.desc)+'</span></span></div>';
-    }).join('');
-    openSheet('<h3>Notificări SMS</h3><div class="muted" style="font-size:13px">SMS-uri trimise (reminder cu 1 zi înainte și după) și mașinile care nu au primit, cu motivul.</div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><span class="chip ok">Trimise '+nSent+'</span><span class="chip bad">Netrimise '+nFail+'</span></div>'
-      +(msgs.length?'<div class="card" style="margin-top:12px">'+rows+'</div>'
-        :'<div class="center muted" style="margin-top:24px;font-size:13px;line-height:1.5">Nicio notificare în ultimele zile.<br>Aici apar SMS-urile trimise și cele eșuate, cu motivul.</div>'));
+    }
+    function remStatus(a){
+      var pl=(a.plate||'').toUpperCase().replace(/\s+/g,'');
+      if(!pl) return {cls:'warn',txt:'de trimis'};
+      var rel=msgs.filter(function(m){return (m.plate||'').toUpperCase().replace(/\s+/g,'')===pl});
+      if(rel.some(function(m){return m.sent})) return {cls:'ok',txt:'reminder trimis'};
+      if(rel.some(function(m){return m.failed})) return {cls:'bad',txt:'reminder eșuat'};
+      return {cls:'warn',txt:'de trimis'};
+    }
+    function tmwRow(a){
+      var rs=remStatus(a);
+      return '<button class="appt" data-appt="'+a.id+'">'
+        +'<span class="time">'+(a.time||'—')+'</span>'
+        +'<span class="who"><span style="display:flex;align-items:center;gap:8px;justify-content:space-between"><span class="nm">'+esc(a.nm||'—')+'</span><span class="chip '+rs.cls+'">'+rs.txt+'</span></span>'
+        +'<span class="cx" style="margin-top:3px">'+platEU(a.plate)+(a.car?'<span class="muted">'+esc(a.car)+'</span>':'')+'</span></span>'
+        +svg('chev',16)+'</button>';
+    }
+    function sec(title,chip,inner,empty){
+      return '<div class="eyebrow" style="margin:16px 2px 8px">'+title+' '+chip+'</div>'
+        +(inner?('<div class="card">'+inner+'</div>'):('<div class="muted" style="font-size:12.5px;padding:0 2px 4px">'+empty+'</div>'));
+    }
+    openSheet('<h3>Notificări</h3><div class="muted" style="font-size:13px">Inspecțiile de mâine și starea SMS-urilor (trimise / netrimise, cu motivul).</div>'
+      + sec('Inspecții mâine','<span class="chip info">'+tmw.length+'</span>', tmw.map(tmwRow).join(''), 'Nicio inspecție programată mâine.')
+      + sec('SMS trimise','<span class="chip ok">'+sent.length+'</span>', sent.map(msgRow).join(''), 'Niciun SMS trimis în ultimele zile.')
+      + sec('SMS netrimise','<span class="chip bad">'+fail.length+'</span>', fail.map(msgRow).join(''), 'Niciun SMS eșuat.'));
   }
 
   function sheetResult(id){
@@ -1548,7 +1625,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     var left=TABS.slice(0,2),right=TABS.slice(2);
     function navBtn(t){return '<button class="nav" data-tab="'+t[0]+'" aria-selected="'+(S.tab===t[0]&&!S.adminOpen)+'">'+svg(t[2],21)+'<span>'+t[1]+'</span></button>'}
     d.innerHTML=navBtn(left[0])+navBtn(left[1])
-      +'<button class="fab" data-sheet="new" aria-label="Programare nouă">'+svg('plus',26)+'</button>'
+      +'<button class="fab" data-fab="1" aria-label="'+(fabAction()==='photos'?'Fotografii':'Programare nouă')+'">'+svg('plus',26)+'</button>'
       +navBtn(right[0])+navBtn(right[1]);
     var side=$('#side');
     if(side){side.innerHTML='<button class="btn primary side-new" data-sheet="new">'+svg('plus',18)+'Programare nouă</button>'
@@ -1561,6 +1638,8 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   function notifyNativeTheme(){try{requestAnimationFrame(function(){try{var c=getComputedStyle(document.documentElement).backgroundColor;if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.inspectoTheme){window.webkit.messageHandlers.inspectoTheme.postMessage(c);}}catch(e){}});}catch(e){}}
   function toggleTheme(){var n=curTheme()==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('insp_theme',n)}catch(e){}render();notifyNativeTheme()}
   (function(){try{var t=localStorage.getItem('insp_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}try{notifyNativeTheme()}catch(e){}})();
+  // Urmează tema telefonului live, cât timp nu există o alegere manuală salvată
+  (function(){try{var mq=window.matchMedia('(prefers-color-scheme:dark)');var onSys=function(){try{if(!localStorage.getItem('insp_theme')){render();notifyNativeTheme();}}catch(e){}};if(mq.addEventListener)mq.addEventListener('change',onSys);else if(mq.addListener)mq.addListener(onSys);}catch(e){}})();
   $('#themeBtn').addEventListener('click',toggleTheme);
 
   /* ---- render ---- */
@@ -1582,9 +1661,26 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   function bindSw(id,fn){var el=$('#'+id);if(!el)return;el.addEventListener('click',function(){var np=el.getAttribute('aria-pressed')!=='true';el.setAttribute('aria-pressed',np);fn(np)})}
 
   /* ---- global clicks ---- */
+  // Butonul „+": comandă rapidă = ultima acțiune aleasă; long-press schimbă acțiunea
+  var _fabLong=false,_fabLP=null;
+  function fabAction(){try{return localStorage.getItem('insp_fab')==='photos'?'photos':'new'}catch(e){return 'new'}}
+  function doFab(a){ if((a||fabAction())==='photos') sheetPhotos(); else sheetNew(); }
+  function sheetFabChoice(){
+    var cur=fabAction();
+    function opt(v,ico,lbl){return '<button class="btn '+(v==='new'?'primary':'soft')+' full" style="margin-top:'+(v==='new'?'14':'10')+'px" data-fabset="'+v+'">'+svg(ico,18)+lbl+(cur===v?'   ✓':'')+'</button>';}
+    openSheet('<h3>Acțiune pentru „+"</h3><div class="muted" style="font-size:13px">Alege ce face apăsarea scurtă. Alegerea rămâne setată.</div>'
+      +opt('new','plus','Programare nouă')
+      +opt('photos','cam','Fotografii'));
+  }
+  document.addEventListener('pointerdown',function(e){var f=e.target.closest&&e.target.closest('.fab');if(!f)return;_fabLong=false;clearTimeout(_fabLP);_fabLP=setTimeout(function(){_fabLong=true;try{if(navigator.vibrate)navigator.vibrate(12)}catch(_){}sheetFabChoice();},450);});
+  document.addEventListener('pointerup',function(){clearTimeout(_fabLP);});
+  document.addEventListener('pointercancel',function(){clearTimeout(_fabLP);});
   document.addEventListener('click',function(e){
-    var el=e.target.closest('[data-tab],[data-sheet],[data-appt],[data-client],[data-start],[data-result],[data-setres],[data-dlall],[data-capture],[data-addshot],[data-rmshot],[data-savecap],[data-editphoto],[data-ocrshot],[data-ocrclear],[data-ocrreset],[data-ocrmode],[data-copyfield],[data-copyinp],[data-mcadd],[data-xltmpl],[data-xlpick],[data-xlexport],[data-delclient],[data-day],[data-cal],[data-addon],[data-savappt],[data-adminopen],[data-adminback],[data-adm],[data-inspector],[data-delinsp],[data-savinsp],[data-doc],[data-plan],[data-copy],[data-sms],[data-remind],[data-toast],[data-logout]');
+    if(_fabLong){_fabLong=false;if(e.preventDefault)e.preventDefault();return;}
+    var el=e.target.closest('[data-tab],[data-sheet],[data-fab],[data-fabset],[data-appt],[data-client],[data-start],[data-result],[data-setres],[data-dlall],[data-capture],[data-addshot],[data-rmshot],[data-savecap],[data-editphoto],[data-ocrshot],[data-ocrclear],[data-ocrreset],[data-ocrmode],[data-copyfield],[data-copyinp],[data-mcadd],[data-xltmpl],[data-xlpick],[data-xlexport],[data-delclient],[data-day],[data-cal],[data-addon],[data-savappt],[data-adminopen],[data-adminback],[data-adm],[data-inspector],[data-delinsp],[data-savinsp],[data-doc],[data-plan],[data-copy],[data-sms],[data-remind],[data-toast],[data-logout]');
     if(!el)return;
+    if(el.hasAttribute('data-fab')){doFab();return;}
+    if(el.hasAttribute('data-fabset')){var v=el.getAttribute('data-fabset');try{localStorage.setItem('insp_fab',v)}catch(_){}closeSheet();renderDock();doFab(v);return;}
     if(el.hasAttribute('data-logout')){if(window.__inspectoAuth&&window.__inspectoAuth.signOut){window.__inspectoAuth.signOut();}else{toast('Conectează Supabase pentru deconectare');}return}
     if(el.hasAttribute('data-tab')){S.adminOpen=false;S.tab=el.getAttribute('data-tab');closeSheet();render();(document.querySelector(".scroll")||{}).scrollTop=0;return}
     if(el.hasAttribute('data-adminopen')){S.adminOpen=true;S.adminTab='overview';render();(document.querySelector(".scroll")||{}).scrollTop=0;return}
@@ -1670,14 +1766,27 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
 
   render();
 
+  // Dedup după nr. înmatriculare: la dubluri, păstrăm intrarea cu valoarea cea mai nouă
+  // (programarea cea mai recentă / data de expirare ITP cea mai nouă).
+  function dedupByPlate(arr,valFn){
+    var map={},order=[];
+    (arr||[]).forEach(function(x){
+      var pl=((x.license_plate||x.plate||'')+'').toUpperCase().replace(/\s+/g,'');
+      if(!pl){order.push(x);return;}
+      if(!(pl in map)){map[pl]=x;order.push(pl);}
+      else if(valFn(x)>valFn(map[pl])){map[pl]=x;}
+    });
+    return order.map(function(o){return typeof o==='string'?map[o]:o;});
+  }
+
   // Punte pentru datele reale din Supabase (populate de src/boot.js, read-only în faza 1)
   window.InspectoApp={
     state:S,
     render:render,
     applyData:function(d){
       d=d||{};
-      if(d.appts)S.appts=d.appts;
-      if(d.clients)S.clients=d.clients;
+      if(d.appts)S.appts=dedupByPlate(d.appts,function(a){return (a.date||'')+'T'+(a.time||'');});
+      if(d.clients)S.clients=dedupByPlate(d.clients,function(c){return c.itp_expiry_date||'';});
       if(d.savedPhotos)S.savedPhotos=d.savedPhotos;
       if(d.inspectors)S.inspectors=d.inspectors;
       if(d.notifs)S.notifs=d.notifs;
