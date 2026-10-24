@@ -1801,6 +1801,23 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     onPhoto:function(p){if(!p||!p.url)return;var set=null;for(var i=0;i<S.savedPhotos.length;i++){var s=S.savedPhotos[i];if(s.plate===p.plate&&s.date===p.date){set=s;break;}}if(!set){set={date:p.date,plate:p.plate,imgs:[]};S.savedPhotos.push(set);}if(!set.imgs)set.imgs=[];var idx=(p.index||set.imgs.length+1)-1;set.imgs[idx]=p.url;renderPhotos();toast('Poză primită de pe telefon','cam');}
   };
   document.dispatchEvent(new Event('inspecto-ready'));
+
+  // Deep-link din widget-uri / push: ?a=photos | new | today (sau #a=...)
+  function handleDeepLink(){
+    try{
+      var qp=new URLSearchParams(location.search||'');
+      var a=qp.get('a')||qp.get('action');
+      if(!a && location.hash){var h=location.hash.replace(/^#/,'');if(/^(photos|new|today)$/.test(h))a=h;}
+      if(!a) return;
+      if(a==='photos') sheetPhotos();
+      else if(a==='new') sheetNew();
+      else if(a==='today'){ S.adminOpen=false; S.tab='azi'; render(); }
+      // curăță parametrul ca să nu reapară la refresh
+      try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){}
+    }catch(e){}
+  }
+  setTimeout(handleDeepLink,350);
+  window.addEventListener('hashchange',handleDeepLink);
 })();
 </script>
 <script type="module" src="/src/boot.js"></script>
