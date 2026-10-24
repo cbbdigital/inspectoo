@@ -273,7 +273,6 @@ async function fetchNotifs(){
 }
 
 async function loadData(){
-  banner('Se încarcă datele…');
   const [a, c, p, nf] = await Promise.all([
     fetchAppointments(sb),
     fetchManualClients(sb),
@@ -287,7 +286,6 @@ async function loadData(){
   window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf });
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
-  else { banner('Conectat · '+a.data.length+' programări · '+c.data.length+' clienți', 'ok'); }
 }
 
 /* ---- Login minimal (necesar pentru RLS) ---- */
