@@ -1012,8 +1012,40 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     }
     return {parse:parse, apply:apply};
   })();
-  var _recog=null;
+  var _recog=null, _nativeRecog=null;
+  function _nativeSR(){ try{ return (window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SpeechRecognition)||null; }catch(e){ return null; } }
+  async function toggleNativeDictation(SR,btn,st){
+    if(_nativeRecog){ _nativeRecog.stop(); return; }
+    try{ await SR.requestPermissions(); }catch(e){}
+    var last='', handle=null, done=false;
+    function finish(){
+      if(done)return; done=true;
+      try{ SR.stop(); }catch(e){}
+      try{ handle&&handle.remove&&handle.remove(); }catch(e){}
+      try{ SR.removeAllListeners&&SR.removeAllListeners(); }catch(e){}
+      btn.classList.remove('rec'); _nativeRecog=null;
+      var txt=(last||'').trim();
+      if(!txt){ if(st)st.textContent='Nu am auzit nimic. Reîncearcă.'; return; }
+      var p=Dictation.parse(txt), n=Dictation.apply(p);
+      if(st)st.textContent='Am completat '+n+' câmp(uri) din: „'+txt+'"';
+      toast(n+' câmpuri completate');
+    }
+    _nativeRecog={ stop:finish };
+    try{ handle=await SR.addListener('partialResults',function(d){ var m=(d&&d.matches&&d.matches[0])||''; if(m){ last=m; if(st)st.textContent=m; } }); }catch(e){}
+    btn.classList.add('rec'); if(st)st.textContent='Ascult… apasă din nou pentru stop.';
+    try{
+      var res=await SR.start({ language:'ro-RO', partialResults:true, popup:false, maxResults:1 });
+      if(res&&res.matches&&res.matches[0]) last=res.matches[0];
+      finish();
+    }catch(e){
+      if(st)st.textContent='Eroare microfon: '+((e&&e.message)||e);
+      try{ handle&&handle.remove&&handle.remove(); }catch(_){}
+      btn.classList.remove('rec'); _nativeRecog=null;
+    }
+  }
   function toggleDictation(btn,st){
+    var NSR=_nativeSR();
+    if(NSR){ toggleNativeDictation(NSR,btn,st); return; }
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){toast('Dictarea nu e suportată în acest browser');if(st)st.textContent='Folosește Chrome/Safari pentru dictare.';return;}
     if(_recog){_recog.stop();return;}
