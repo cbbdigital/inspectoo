@@ -130,7 +130,7 @@ window.__inspectoPhotos = {
         var url=sb.storage.from('inspection-photos').getPublicUrl(path).data.publicUrl;
         var col='photo_'+nextIdx+'_url';
         if(!rid){
-          var payload={ appointment_id:null, license_plate:plate, inspection_date:date }; payload[col]=url;
+          var payload={ appointment_id:null, inspector_id:AUTH_UID, license_plate:plate, inspection_date:date }; payload[col]=url;
           var ins=await sb.from('inspection_photos').insert(payload).select('id').maybeSingle();
           if(ins.error) return { error: ins.error.message };
           rid=ins.data&&ins.data.id; if(rid)_rowCache[key]=rid;
@@ -315,10 +315,13 @@ function _mapNotif(r){
 }
 async function fetchNotifs(){
   try{
-    const since = new Date(Date.now()-3*864e5).toISOString(); // ~1 zi înainte și una după
-    const { data, error } = await sb.from('whatsapp_notifications').select('*').gte('created_at', since).order('created_at',{ascending:false}).limit(100);
-    if(error||!data) return [];
-    return data.map(_mapNotif);
+    // Notificările stației (funcție securizată: merge și pt owner, și pt inspector → providerul)
+    var r = await sb.rpc('get_station_notifications', { days: 3 });
+    if(!r.error && r.data) return r.data.map(_mapNotif);
+    // fallback (dacă funcția nu e încă deployată): citire directă a propriilor rânduri
+    const since = new Date(Date.now()-3*864e5).toISOString();
+    const { data } = await sb.from('whatsapp_notifications').select('*').gte('created_at', since).order('created_at',{ascending:false}).limit(100);
+    return (data||[]).map(_mapNotif);
   }catch(e){ return []; }
 }
 
