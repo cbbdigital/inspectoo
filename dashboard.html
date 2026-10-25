@@ -241,9 +241,11 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
 .ov.on{opacity:1;pointer-events:auto}
 .sheet{width:100%;max-width:440px;background:var(--sheet);border-top:1px solid var(--line);box-shadow:0 -16px 48px rgba(0,0,0,.4);border-radius:24px 24px 0 0;
   padding:10px max(16px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 18px) max(16px,env(safe-area-inset-right,0px));
-  transform:translateY(100%);transition:transform .28s cubic-bezier(.3,.8,.3,1);max-height:88%;overflow:auto}
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.3,.8,.3,1);max-height:88%;overflow-x:hidden;overflow-y:auto}
 .ov.on .sheet{transform:none}
-.grip{width:44px;height:5px;border-radius:999px;background:var(--grip);margin:2px auto 12px;flex:0 0 auto}
+.griphold{position:sticky;top:0;z-index:6;display:flex;justify-content:center;align-items:center;
+  margin:-10px 0 8px;padding:12px 0 9px;background:var(--sheet)}
+.grip{width:44px;height:5px;border-radius:999px;background:var(--grip);margin:0;flex:0 0 auto}
 .sheet.dragging{transition:none!important}
 .sheet h3{font-size:19px;font-weight:800;margin-bottom:4px}
 .field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
@@ -513,11 +515,42 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       });
     });
   }
-  function timeSelect(id,sel){
-    var slots=[];for(var hh=8;hh<=20;hh++){for(var mm=0;mm<60;mm+=30){if(hh===20&&mm>0)break;slots.push(pad(hh)+':'+pad(mm))}}
-    if(sel&&slots.indexOf(sel)<0)slots.unshift(sel);
-    var o=sel?'':'<option value="" selected disabled>Alege ora</option>';
-    o+=slots.map(function(t){return '<option value="'+t+'"'+(sel===t?' selected':'')+'>'+t+'</option>'}).join('');
+  var SCHED_DEFAULT=[
+    {open:'08:00',close:'20:00',closed:false}, // Luni
+    {open:'08:00',close:'20:00',closed:false}, // Marți
+    {open:'08:00',close:'20:00',closed:false}, // Miercuri
+    {open:'08:00',close:'20:00',closed:false}, // Joi
+    {open:'08:00',close:'20:00',closed:false}, // Vineri
+    {open:'08:00',close:'20:00',closed:false}, // Sâmbătă
+    {open:'08:00',close:'20:00',closed:true}   // Duminică
+  ];
+  function schedDow(dateStr){var p=(dateStr||'').split('-');if(p.length!==3)return 0;var d=new Date(+p[0],+p[1]-1,+p[2]);return (d.getDay()+6)%7;}
+  function schedFor(dateStr){var s=(S.schedule&&S.schedule.length===7)?S.schedule:SCHED_DEFAULT;return s[schedDow(dateStr)]||{open:'08:00',close:'20:00',closed:false};}
+  function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
+  function slotTaken(dateStr,t,exceptId){return (S.appts||[]).some(function(a){return a.date===dateStr&&a.time===t&&a.status!=='anulat'&&a.id!==exceptId&&(a.dbid||a.id)!==exceptId;});}
+  function genSlots(dateStr,exceptId){
+    var sc=schedFor(dateStr); if(sc.closed) return {closed:true,slots:[]};
+    var op=sc.open||'08:00', cl=sc.close||'20:00';
+    var start=(+op.slice(0,2))*60+(+op.slice(3,5)), end=(+cl.slice(0,2))*60+(+cl.slice(3,5));
+    var isToday=(dateStr===TODAY), cur=(new Date()).getHours()*60+(new Date()).getMinutes();
+    var out=[];
+    for(var m=start;m<=end;m+=30){var t=pad(Math.floor(m/60))+':'+pad(m%60);out.push({t:t,past:isToday&&m<=cur,taken:slotTaken(dateStr,t,exceptId)});}
+    return {closed:false,slots:out};
+  }
+  function timeSelect(id,sel,dateStr){
+    if(!dateStr){
+      var slots=[];for(var hh=8;hh<=20;hh++){for(var mm=0;mm<60;mm+=30){if(hh===20&&mm>0)break;slots.push(pad(hh)+':'+pad(mm))}}
+      if(sel&&slots.indexOf(sel)<0)slots.unshift(sel);
+      var o0=sel?'':'<option value="" selected disabled>Alege ora</option>';
+      o0+=slots.map(function(t){return '<option value="'+t+'"'+(sel===t?' selected':'')+'>'+t+'</option>'}).join('');
+      return '<select id="'+id+'">'+o0+'</select>';
+    }
+    var g=genSlots(dateStr,sel&&sel._ex);
+    if(g.closed) return '<select id="'+id+'" disabled><option value="" selected>Închis în această zi</option></select>';
+    var avail=g.slots.filter(function(s){return !s.past&&!s.taken;});
+    if(!avail.length) return '<select id="'+id+'" disabled><option value="" selected>Niciun interval liber</option></select>';
+    var o='<option value="" selected disabled>Alege ora</option>';
+    o+=g.slots.map(function(s){var dis=(s.past||s.taken);var lbl=s.t+(s.taken?' · ocupat':(s.past?' · trecut':''));return '<option value="'+s.t+'"'+(sel===s.t&&!dis?' selected':'')+(dis?' disabled':'')+'>'+lbl+'</option>';}).join('');
     return '<select id="'+id+'">'+o+'</select>';
   }
   function svg(name,sz){return '<svg class="i" viewBox="0 0 24 24" style="width:'+(sz||20)+'px;height:'+(sz||20)+'px">'+IC[name]+'</svg>'}
@@ -538,6 +571,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     msg:{sent:0,failed:0,thanks:0,reminders:0,confirm:0},
     station:{name:'',auth:'',address:''},
     smsCfg:{company:'',maps:'',phone:''},
+    schedule:null,
     plan:'complete',
     capPlate:'',
     ocr:{target:null,mode:'doc',civImg:'',civ:'',civSrc:'',civBusy:false,civCopied:false,vinImg:'',vin:'',vinBusy:false,vinCopied:false,ciImg:'',ciBusy:false,nume:'',numeCopied:false,prenume:'',prenumeCopied:false,serie:'',serieCopied:false,err:'',_timer:0},
@@ -586,7 +620,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   function toast(msg,ic){var t=$('#toast');t.innerHTML=svg(ic||'check',17)+'<span>'+esc(msg)+'</span>';t.classList.add('on');clearTimeout(tT);tT=setTimeout(function(){t.classList.remove('on')},2200)}
 
   /* ---- sheet ---- */
-  function openSheet(html){var ov=$('#ov');$('#sheet').innerHTML='<div class="grip"></div>'+html;ov.classList.add('on')}
+  function openSheet(html){var ov=$('#ov');$('#sheet').innerHTML='<div class="griphold"><div class="grip"></div></div>'+html;ov.classList.add('on')}
   function closeSheet(){$('#ov').classList.remove('on')}
   (function(){var sheet=document.getElementById('sheet'),ov=document.getElementById('ov');if(!sheet||!ov)return;
     var startY=0,cur=0,drag=false;
@@ -670,9 +704,10 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   }
   function upcomingPanel(){
     var up=S.appts.filter(function(a){return a.date>=TODAY}).sort(function(a,b){return a.date===b.date?a.time.localeCompare(b.time):a.date.localeCompare(b.date)}).slice(0,15);
+    var MON3=['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','noi','dec'];
     var upRows=up.map(function(a){
-      var p=a.date.split('-');var dl=(a.date===TODAY?'Azi':(+p[2])+' '+MONTHS[+p[1]-1]);
-      return '<button class="appt" data-appt="'+a.id+'"><span class="time" style="min-width:auto;text-align:left"><b>'+dl+'</b><span class="muted" style="display:block;font-size:11px;font-weight:600">'+a.time+'</span></span>'
+      var p=a.date.split('-');var dl=(a.date===TODAY?'Azi':(+p[2])+' '+MON3[+p[1]-1]);
+      return '<button class="appt" data-appt="'+a.id+'"><span class="time" style="flex:0 0 58px;min-width:58px;text-align:left"><b>'+dl+'</b><span class="muted" style="display:block;font-size:11px;font-weight:600;margin-top:2px">'+a.time+'</span></span>'
         +'<span class="who"><span class="nm">'+esc(a.nm)+'</span><span class="cx">'+platEU(a.plate)+'<span class="muted">'+esc(a.car)+'</span></span></span>'
         +'<span class="chev">'+svg('chev',16)+'</span></button>';
     }).join('');
@@ -1066,13 +1101,21 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       +'<div class="row2"><div class="field"><label>Nr. înmatriculare</label><input id="f_pl" placeholder="VN 10 ABC"></div>'
       +'<div class="field"><label>Telefon</label><input id="f_ph" inputmode="tel" placeholder="07xx xxx xxx"></div></div>'
       +'<div class="field"><label>Mașină</label><input id="f_car" placeholder="ex. Dacia Logan"></div>'
-      +'<div class="row2"><div class="field"><label>Data</label><input type="date" id="f_date" value="'+dval+'"></div>'
-      +'<div class="field"><label>Ora</label>'+timeSelect('f_time','')+'</div></div>'
+      +'<div class="row2"><div class="field"><label>Data</label><input type="date" id="f_date" value="'+dval+'" min="'+TODAY+'"></div>'
+      +'<div class="field"><label>Ora</label><span id="f_timeWrap">'+timeSelect('f_time','',dval)+'</span></div></div>'
       +'<button class="btn primary full" id="f_save" style="margin-top:18px">'+svg('plus',18)+'Adaugă programarea</button>');
+    var _dEl=$('#f_date');if(_dEl)_dEl.addEventListener('change',function(){var w=$('#f_timeWrap');if(w)w.innerHTML=timeSelect('f_time','',this.value||TODAY);});
     $('#f_save').addEventListener('click',function(){
-      var nm=$('#f_nm').value.trim()||'Client nou';
       var dt=$('#f_date').value||TODAY;
-      var a={id:Date.now(),date:dt,time:$('#f_time').value.trim()||'—',nm:nm,car:$('#f_car').value.trim()||'—',plate:$('#f_pl').value.trim()||'—',phone:$('#f_ph').value.trim()||'—',status:'asteptare'};
+      var tm=($('#f_time').value||'').trim();
+      var sc=schedFor(dt);
+      if(sc.closed){toast('Stația e închisă în ziua selectată','shield');return;}
+      if(!tm){toast('Alege ora programării','clock');return;}
+      if(dt===TODAY&&tm<=nowHM()){toast('Ora a trecut — alege un interval viitor','clock');return;}
+      if(tm<(sc.open||'08:00')||tm>(sc.close||'20:00')){toast('În afara programului ('+(sc.open||'08:00')+'–'+(sc.close||'20:00')+')','clock');return;}
+      if(slotTaken(dt,tm)){toast('Ai deja o programare la '+tm+' în această zi','shield');return;}
+      var nm=$('#f_nm').value.trim()||'Client nou';
+      var a={id:Date.now(),date:dt,time:tm,nm:nm,car:$('#f_car').value.trim()||'—',plate:$('#f_pl').value.trim()||'—',phone:$('#f_ph').value.trim()||'—',status:'asteptare'};
       S.appts.push(a);
       S.calSel=dt;S.calY=+dt.slice(0,4);S.calM=+dt.slice(5,7)-1;
       closeSheet();render();
@@ -1602,12 +1645,33 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     S.ocr[key+'Busy']=false;renderOcr();
   }
   function sheetSchedule(){
-    openSheet('<h3>Program de lucru</h3><div class="muted" style="font-size:13px">Intervalul în care primești programări.</div>'
-      +'<div class="card" style="margin-top:14px">'
-      +[['Luni','08:00–20:00'],['Marți','08:00–20:00'],['Miercuri','08:00–20:00'],['Joi','08:00–20:00'],['Vineri','08:00–20:00'],['Sâmbătă','08:00–20:00'],['Duminică','Liber']].map(function(r){
-        return '<div class="kv" style="padding:12px 14px"><span class="k">'+r[0]+'</span><span class="v '+(r[1]==='Liber'?'muted':'')+'">'+r[1]+'</span></div>';
-      }).join('')+'</div>'
-      +'<button class="btn soft full" style="margin-top:14px" data-toast="Editare program (demo)">Editează programul</button>');
+    var days=['Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă','Duminică'];
+    var sch=(S.schedule&&S.schedule.length===7)?S.schedule:SCHED_DEFAULT;
+    var rows=days.map(function(dn,i){var d=sch[i]||{open:'08:00',close:'20:00',closed:false};
+      return '<div class="schrow" style="display:flex;align-items:center;gap:10px;padding:11px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap">'
+        +'<div style="font-weight:700;min-width:80px">'+dn+'</div>'
+        +'<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)"><input type="checkbox" class="sch_cl" '+(d.closed?'checked':'')+'>Închis</label>'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-left:auto"><input type="time" class="sch_op" value="'+(d.open||'08:00')+'"'+(d.closed?' disabled':'')+' style="width:112px">'
+        +'<span class="muted">–</span><input type="time" class="sch_cls" value="'+(d.close||'20:00')+'"'+(d.closed?' disabled':'')+' style="width:112px"></div>'
+        +'</div>';
+    }).join('');
+    openSheet('<h3>Program de lucru</h3><div class="muted" style="font-size:13px">Intervalul în care se pot face programări. Se respectă automat la alegerea orei.</div>'
+      +'<div class="card" style="margin-top:14px;padding:4px 4px">'+rows+'</div>'
+      +'<button class="btn primary full" id="sch_save" style="margin-top:16px">'+svg('check',18)+'Salvează programul</button>');
+    Array.prototype.forEach.call(document.querySelectorAll('.schrow'),function(row){
+      var cb=row.querySelector('.sch_cl');cb.addEventListener('change',function(){var dis=cb.checked;row.querySelector('.sch_op').disabled=dis;row.querySelector('.sch_cls').disabled=dis;});
+    });
+    $('#sch_save').addEventListener('click',async function(){
+      var ns=[];Array.prototype.forEach.call(document.querySelectorAll('.schrow'),function(row){
+        ns.push({open:row.querySelector('.sch_op').value||'08:00',close:row.querySelector('.sch_cls').value||'20:00',closed:row.querySelector('.sch_cl').checked});
+      });
+      S.schedule=ns;
+      var btn=this,old=btn.innerHTML;btn.disabled=true;btn.textContent='Se salvează…';
+      var r=(window.__inspectoWrite&&window.__inspectoWrite.saveSettings)?await window.__inspectoWrite.saveSettings({station:S.station,smsCfg:S.smsCfg,schedule:S.schedule}):{error:null};
+      btn.disabled=false;btn.innerHTML=old;
+      if(r&&r.error){toast('Eroare salvare: '+r.error);return;}
+      closeSheet();toast('Program salvat');
+    });
   }
   function sheetNotif(){
     var msgs=(S.notifs||[]);
@@ -1835,6 +1899,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       if(d.notifs)S.notifs=d.notifs;
       if(d.station)S.station=Object.assign({name:'',auth:'',address:''},d.station);
       if(d.smsCfg)S.smsCfg=Object.assign({company:'',maps:'',phone:''},d.smsCfg);
+      if(d.schedule&&d.schedule.length===7)S.schedule=d.schedule;
       if(d.plan)S.plan=d.plan;
       render();
     },
