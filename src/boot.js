@@ -257,6 +257,7 @@ window.__inspectoWrite = {
         whatsapp_business_address: (sm.maps||''),
         phone: (sm.phone||'')
       };
+      if(s.schedule && s.schedule.length===7) p.work_schedule = s.schedule;
       var r=await sb.rpc('update_station_settings', { p: p });
       if(r.error) return { error: r.error.message||String(r.error) };
       return { error:null, data:r.data };
@@ -269,11 +270,13 @@ async function fetchSettings(){
   try{
     var pid=(INSPECTOR && INSPECTOR.service_provider_id) || AUTH_UID;
     if(!pid) return null;
-    var r=await sb.from('users').select('company_name,itp_station_number,street,whatsapp_business_name,whatsapp_business_address,phone').eq('id', pid).maybeSingle();
+    var r=await sb.from('users').select('company_name,itp_station_number,street,whatsapp_business_name,whatsapp_business_address,phone,work_schedule').eq('id', pid).maybeSingle();
     var d=r.data; if(!d) return null;
+    var sched=null; try{ var ws=d.work_schedule; if(typeof ws==='string')ws=JSON.parse(ws); if(Array.isArray(ws)&&ws.length===7)sched=ws; }catch(e){}
     return {
       station:{ name:d.company_name||'', auth:d.itp_station_number||'', address:d.street||'' },
-      smsCfg:{ company:d.whatsapp_business_name||'', maps:d.whatsapp_business_address||'', phone:d.phone||'' }
+      smsCfg:{ company:d.whatsapp_business_name||'', maps:d.whatsapp_business_address||'', phone:d.phone||'' },
+      schedule: sched
     };
   }catch(e){ return null; }
 }
@@ -360,7 +363,7 @@ async function loadData(){
   exportWidgetSession();
   var settings = await fetchSettings();
   var payload = { appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf, inspectors:insp };
-  if(settings){ payload.station=settings.station; payload.smsCfg=settings.smsCfg; }
+  if(settings){ payload.station=settings.station; payload.smsCfg=settings.smsCfg; if(settings.schedule)payload.schedule=settings.schedule; }
   window.InspectoApp.applyData(payload);
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
