@@ -279,7 +279,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
 .ph-th{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block;cursor:pointer}
 .ph-th:active{transform:scale(.97)}
 .editov{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;flex-direction:column}
-.edit-top{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--hd);color:var(--hd-fg)}
+.edit-top{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;border-bottom:1px solid var(--line);background:var(--hd);color:var(--hd-fg)}
 .edit-title{flex:1;font-family:var(--font-d);font-weight:800;font-size:16px}
 .edit-x{width:38px;height:38px;border-radius:11px;background:var(--hd-btn);display:grid;place-items:center;color:var(--hd-fg)}
 .edit-x svg{transform:rotate(180deg)}
