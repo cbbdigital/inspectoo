@@ -369,32 +369,70 @@ async function loadData(){
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
 }
 
-/* ---- Login minimal (necesar pentru RLS) ---- */
+/* ---- Ecran welcome / login ---- */
 function showLogin(){
+  const LOGO='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><path d="M16.77 4.37 A9 9 0 1 0 20.34 8.63"/><path d="M8 12.4l3.2 3.2 9.2-10.4"/></svg>';
   const wrap=document.createElement('div');
   wrap.id='loginWrap';
-  wrap.style.cssText='position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;background:rgba(6,10,18,.72);padding:20px';
-  wrap.innerHTML=
-    '<form id="loginForm" style="width:100%;max-width:360px;background:#fff;border-radius:20px;padding:24px;font-family:system-ui,sans-serif;box-shadow:0 20px 60px -20px rgba(0,0,0,.5)">'+
-    '<div style="font:800 20px/1.2 system-ui;color:#0e1b33;margin-bottom:4px">Inspecto</div>'+
-    '<div style="color:#64748b;font-size:13px;margin-bottom:18px">Autentifică-te cu contul tău existent.</div>'+
-    '<input id="lg_em" type="email" placeholder="Email" autocomplete="username" required style="width:100%;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;font-size:15px">'+
-    '<input id="lg_pw" type="password" placeholder="Parolă" autocomplete="current-password" required style="width:100%;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px;font-size:15px">'+
-    '<button type="submit" id="lg_go" style="width:100%;padding:13px;border:0;border-radius:12px;background:#1452e6;color:#fff;font-weight:700;font-size:15px;cursor:pointer">Intră în cont</button>'+
-    '<div id="lg_err" style="color:#d8392b;font-size:12.5px;margin-top:10px;min-height:16px"></div>'+
-    '</form>';
+  wrap.style.cssText='position:fixed;inset:0;z-index:90;background:var(--app);color:var(--fg);font-family:var(--font-b);display:flex;flex-direction:column;'
+    +'padding:calc(env(safe-area-inset-top,0px) + 26px) max(22px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 22px) max(22px,env(safe-area-inset-right,0px))';
+
+  function logoBlock(sz,big){return '<div style="width:'+sz+'px;height:'+sz+'px;border-radius:'+Math.round(sz*0.28)+'px;background:var(--accent);display:grid;place-items:center'+(big?';box-shadow:0 20px 44px -18px var(--accent)':'')+'"><span style="width:'+Math.round(sz*0.5)+'px;height:'+Math.round(sz*0.5)+'px;display:grid;place-items:center">'+LOGO+'</span></div>';}
+
+  function welcomeHTML(){ return ''
+    +'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">'
+      +logoBlock(94,true)
+      +'<div style="font-family:var(--font-d);font-weight:800;font-size:31px;letter-spacing:-.02em">Inspecto</div>'
+      +'<div style="color:var(--muted);font-size:14px;text-align:center;max-width:300px;line-height:1.5">Programări, inspecții și remindere SMS pentru stația ta ITP.</div>'
+    +'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:11px">'
+      +'<button class="btn primary full" id="lg_signup" style="min-height:54px;font-size:15px">Înscrie-te gratuit · 30 de zile</button>'
+      +'<button class="btn ghost full" id="lg_loginBtn" style="min-height:54px;font-size:15px">Log in</button>'
+      +'<div id="lg_err" style="color:var(--bad);font-size:12.5px;min-height:14px;text-align:center"></div>'
+      +'<div style="color:var(--muted);font-size:12px;line-height:1.55;text-align:center;padding:0 4px">Prin crearea unui cont sau utilizarea aplicației, ești de acord cu <a href="https://inspectoo.ro" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">Termenii de utilizare</a> și <a href="https://inspectoo.ro" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">Politica de confidențialitate</a> Inspecto.</div>'
+      +'<button id="lg_demo" style="background:none;border:0;color:var(--accent);font-family:var(--font-b);font-weight:700;font-size:13.5px;padding:10px;margin-top:2px;cursor:pointer">Continuă cu cont demo</button>'
+    +'</div>';
+  }
+  function formHTML(){ return ''
+    +'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">'
+      +logoBlock(72,false)
+      +'<div style="font-family:var(--font-d);font-weight:800;font-size:23px">Autentificare</div>'
+    +'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+      +'<input id="lg_em" type="email" placeholder="Email" autocomplete="username" inputmode="email" style="width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:13px;background:var(--surface);color:var(--fg);font:inherit;font-size:15px;outline:none">'
+      +'<input id="lg_pw" type="password" placeholder="Parolă" autocomplete="current-password" style="width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:13px;background:var(--surface);color:var(--fg);font:inherit;font-size:15px;outline:none">'
+      +'<div id="lg_err" style="color:var(--bad);font-size:12.5px;min-height:16px;text-align:center"></div>'
+      +'<button class="btn primary full" id="lg_go" style="min-height:54px;font-size:15px">Intră în cont</button>'
+      +'<button class="btn ghost full" id="lg_back" style="min-height:48px">Înapoi</button>'
+    +'</div>';
+  }
+
+  function mountWelcome(){
+    wrap.innerHTML=welcomeHTML();
+    wrap.querySelector('#lg_signup').onclick=function(){ try{ window.open('https://inspectoo.ro','_blank'); }catch(e){ try{ window.location.assign('https://inspectoo.ro'); }catch(_){} } };
+    wrap.querySelector('#lg_loginBtn').onclick=mountForm;
+    wrap.querySelector('#lg_demo').onclick=function(){ doLogin('demo1@inspecto.ro','Demo123!', this, 'Se încarcă demo…'); };
+  }
+  function mountForm(){
+    wrap.innerHTML=formHTML();
+    wrap.querySelector('#lg_back').onclick=mountWelcome;
+    wrap.querySelector('#lg_go').onclick=function(){ doLogin(wrap.querySelector('#lg_em').value.trim(), wrap.querySelector('#lg_pw').value, this, 'Se conectează…'); };
+    ['lg_em','lg_pw'].forEach(function(id){ var e=wrap.querySelector('#'+id); if(e)e.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); wrap.querySelector('#lg_go').click(); } }); });
+  }
+  async function doLogin(em,pw,btn,loadingTxt){
+    var err=wrap.querySelector('#lg_err'); if(err)err.textContent='';
+    if(!em||!pw){ if(err)err.textContent='Completează emailul și parola.'; return; }
+    var old=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent=loadingTxt||'Se conectează…'; }
+    try{
+      const { error } = await sb.auth.signInWithPassword({ email:em, password:pw });
+      if(error){ if(err)err.textContent='Autentificare eșuată. Verifică emailul și parola.'; if(btn){ btn.disabled=false; btn.textContent=old; } return; }
+      wrap.remove();
+      loadData();
+    }catch(e){ if(err)err.textContent='Eroare de rețea. Reîncearcă.'; if(btn){ btn.disabled=false; btn.textContent=old; } }
+  }
+
+  mountWelcome();
   document.body.appendChild(wrap);
-  wrap.querySelector('#loginForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const em=wrap.querySelector('#lg_em').value.trim();
-    const pw=wrap.querySelector('#lg_pw').value;
-    const btn=wrap.querySelector('#lg_go'); btn.disabled=true; btn.textContent='Se conectează…';
-    wrap.querySelector('#lg_err').textContent='';
-    const { error } = await sb.auth.signInWithPassword({ email:em, password:pw });
-    if(error){ wrap.querySelector('#lg_err').textContent='Autentificare eșuată. Verifică emailul și parola.'; btn.disabled=false; btn.textContent='Intră în cont'; return; }
-    wrap.remove();
-    loadData();
-  });
 }
 
 (async ()=>{
