@@ -243,8 +243,40 @@ window.__inspectoWrite = {
       else q=q.eq('license_plate',((c&&(c.plate||c.license_plate))||'').toUpperCase().replace(/\s+/g,''));
       var r=await q; return { error:r.error&&r.error.message };
     }catch(e){ return { error:e.message||String(e) }; }
+  },
+  // Salvare setări stație (Date stație + Configurare SMS) → rândul providerului, prin RPC securizat
+  async saveSettings(s){
+    try{
+      s=s||{};
+      var st=s.station||{}, sm=s.smsCfg||{};
+      var p={
+        company_name: (st.name||''),
+        itp_station_number: (st.auth||''),
+        street: (st.address||''),
+        whatsapp_business_name: (sm.company||''),
+        whatsapp_business_address: (sm.maps||''),
+        phone: (sm.phone||'')
+      };
+      var r=await sb.rpc('update_station_settings', { p: p });
+      if(r.error) return { error: r.error.message||String(r.error) };
+      return { error:null, data:r.data };
+    }catch(e){ return { error: e.message||String(e) }; }
   }
 };
+
+// Citire setări stație din rândul providerului (merge și pt owner, și pt inspector)
+async function fetchSettings(){
+  try{
+    var pid=(INSPECTOR && INSPECTOR.service_provider_id) || AUTH_UID;
+    if(!pid) return null;
+    var r=await sb.from('users').select('company_name,itp_station_number,street,whatsapp_business_name,whatsapp_business_address,phone').eq('id', pid).maybeSingle();
+    var d=r.data; if(!d) return null;
+    return {
+      station:{ name:d.company_name||'', auth:d.itp_station_number||'', address:d.street||'' },
+      smsCfg:{ company:d.whatsapp_business_name||'', maps:d.whatsapp_business_address||'', phone:d.phone||'' }
+    };
+  }catch(e){ return null; }
+}
 
 // Cod de recomandare (ca în aplicația veche: users.referral_code + tabelul referrals)
 window.__inspectoRef = async function(){
@@ -323,7 +355,10 @@ async function loadData(){
   }
   setupRealtime();
   exportWidgetSession();
-  window.InspectoApp.applyData({ appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf, inspectors:insp });
+  var settings = await fetchSettings();
+  var payload = { appts:a.data, clients:c.data, savedPhotos:p.data, notifs:nf, inspectors:insp };
+  if(settings){ payload.station=settings.station; payload.smsCfg=settings.smsCfg; }
+  window.InspectoApp.applyData(payload);
   if(READONLY) window.InspectoApp.setReadonly(true);
   if(err){ banner('Unele date nu s-au putut citi: '+(err.message||err), 'err'); }
 }

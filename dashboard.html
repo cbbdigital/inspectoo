@@ -758,8 +758,12 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       +'<div class="field"><label>Nr. autorizație RAR</label><input id="st_au" value="'+esc(s.auth)+'"></div>'
       +'<div class="field"><label>Adresă</label><input id="st_ad" value="'+esc(s.address)+'"></div>'
       +'<button class="btn primary full" id="st_save" style="margin-top:18px">'+svg('check',18)+'Salvează</button>');
-    $('#st_save').addEventListener('click',function(){
+    $('#st_save').addEventListener('click',async function(){
       S.station={name:$('#st_nm').value.trim(),auth:$('#st_au').value.trim(),address:$('#st_ad').value.trim()};
+      var btn=this,old=btn.innerHTML;btn.disabled=true;btn.textContent='Se salvează…';
+      var r=(window.__inspectoWrite&&window.__inspectoWrite.saveSettings)?await window.__inspectoWrite.saveSettings({station:S.station,smsCfg:S.smsCfg}):{error:null};
+      btn.disabled=false;btn.innerHTML=old;
+      if(r&&r.error){toast('Eroare salvare: '+r.error);return;}
       closeSheet();render();toast('Date stație salvate');
     });
   }
@@ -799,7 +803,14 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       +'<div class="eyebrow" style="margin:16px 2px 8px">Mesaje</div>'
       +rows
       +'<button class="btn primary full" id="sm_save" style="margin-top:16px">'+svg('check',18)+'Salvează</button>');
-    $('#sm_save').addEventListener('click',function(){S.smsCfg={company:$('#sm_co').value.trim(),maps:$('#sm_mp').value.trim(),phone:$('#sm_tel').value.trim()};closeSheet();toast('Configurare SMS salvată');});
+    $('#sm_save').addEventListener('click',async function(){
+      S.smsCfg={company:$('#sm_co').value.trim(),maps:$('#sm_mp').value.trim(),phone:$('#sm_tel').value.trim()};
+      var btn=this,old=btn.innerHTML;btn.disabled=true;btn.textContent='Se salvează…';
+      var r=(window.__inspectoWrite&&window.__inspectoWrite.saveSettings)?await window.__inspectoWrite.saveSettings({station:S.station,smsCfg:S.smsCfg}):{error:null};
+      btn.disabled=false;btn.innerHTML=old;
+      if(r&&r.error){toast('Eroare salvare: '+r.error);return;}
+      closeSheet();toast('Configurare SMS salvată');
+    });
   }
   function sheetDoc(kind){
     function H(t){return '<b style="color:var(--ink);display:block;margin:16px 0 4px;font-size:13.5px">'+t+'</b>';}
