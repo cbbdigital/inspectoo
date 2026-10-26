@@ -240,17 +240,18 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   opacity:0;pointer-events:none;transition:opacity .25s}
 .ov.on{opacity:1;pointer-events:auto}
 .sheet{width:100%;max-width:440px;background:var(--sheet);border-top:1px solid var(--line);box-shadow:0 -16px 48px rgba(0,0,0,.4);border-radius:24px 24px 0 0;
-  padding:10px max(16px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 18px) max(16px,env(safe-area-inset-right,0px));
+  padding:0 max(16px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 18px) max(16px,env(safe-area-inset-right,0px));
   transform:translateY(100%);transition:transform .28s cubic-bezier(.3,.8,.3,1);max-height:88%;overflow-x:hidden;overflow-y:auto}
 .ov.on .sheet{transform:none}
 .griphold{position:sticky;top:0;z-index:6;display:flex;justify-content:center;align-items:center;
-  margin:-10px 0 8px;padding:12px 0 9px;background:var(--sheet)}
+  margin:0 -60px 8px;padding:12px 60px 9px;background:var(--sheet);border-radius:24px 24px 0 0}
 .grip{width:44px;height:5px;border-radius:999px;background:var(--grip);margin:0;flex:0 0 auto}
 .sheet.dragging{transition:none!important}
 .sheet h3{font-size:19px;font-weight:800;margin-bottom:4px}
 .field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
 .field label{font-size:12.5px;font-weight:600;color:var(--muted)}
-.field input,.field select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;outline:none}
+.field input,.field select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;outline:none;width:100%}
+.row2>*{min-width:0}
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -547,10 +548,11 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     }
     var g=genSlots(dateStr,sel&&sel._ex);
     if(g.closed) return '<select id="'+id+'" disabled><option value="" selected>Închis în această zi</option></select>';
-    var avail=g.slots.filter(function(s){return !s.past&&!s.taken;});
+    var visible=g.slots.filter(function(s){return !s.past;}); // orele trecute dispar complet
+    var avail=visible.filter(function(s){return !s.taken;});
     if(!avail.length) return '<select id="'+id+'" disabled><option value="" selected>Niciun interval liber</option></select>';
     var o='<option value="" selected disabled>Alege ora</option>';
-    o+=g.slots.map(function(s){var dis=(s.past||s.taken);var lbl=s.t+(s.taken?' · ocupat':(s.past?' · trecut':''));return '<option value="'+s.t+'"'+(sel===s.t&&!dis?' selected':'')+(dis?' disabled':'')+'>'+lbl+'</option>';}).join('');
+    o+=visible.map(function(s){var lbl=s.t+(s.taken?' · ocupat':'');return '<option value="'+s.t+'"'+(sel===s.t&&!s.taken?' selected':'')+(s.taken?' disabled':'')+'>'+lbl+'</option>';}).join('');
     return '<select id="'+id+'">'+o+'</select>';
   }
   function svg(name,sz){return '<svg class="i" viewBox="0 0 24 24" style="width:'+(sz||20)+'px;height:'+(sz||20)+'px">'+IC[name]+'</svg>'}
@@ -1094,17 +1096,23 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
   }
   function sheetNew(presetDate){
     var dval=(typeof presetDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(presetDate))?presetDate:TODAY;
-    openSheet('<h3>Programare nouă</h3><div class="muted" style="font-size:13px">Completează detaliile sau dictează-le prin voce.</div>'
-      +'<button class="btn soft full dictbtn" id="f_dict" style="margin-top:12px">'+svg('mic',18)+'Completează prin voce</button>'
+    var D=S.draftNew||{}; var dv=(D.date&&/^\d{4}-\d{2}-\d{2}$/.test(D.date)&&D.date>=TODAY)?D.date:dval;
+    openSheet('<h3>Programare nouă</h3><div class="muted" style="font-size:13px">Completează detaliile, dictează-le prin voce sau alege din contacte.</div>'
+      +'<div class="row2" style="margin-top:12px"><button class="btn soft dictbtn" id="f_dict">'+svg('mic',18)+'Prin voce</button>'
+      +'<button class="btn soft" id="f_contacts">'+svg('user',18)+'Din contacte</button></div>'
       +'<div id="f_dictS" class="muted" style="font-size:12px;text-align:center;margin:7px 2px 2px;min-height:14px;line-height:1.4"></div>'
-      +'<div class="field" style="margin-top:8px"><label>Nume client</label><input id="f_nm" placeholder="ex. Gheorghe Popa"></div>'
-      +'<div class="row2"><div class="field"><label>Nr. înmatriculare</label><input id="f_pl" placeholder="VN 10 ABC"></div>'
-      +'<div class="field"><label>Telefon</label><input id="f_ph" inputmode="tel" placeholder="07xx xxx xxx"></div></div>'
-      +'<div class="field"><label>Mașină</label><input id="f_car" placeholder="ex. Dacia Logan"></div>'
-      +'<div class="row2"><div class="field"><label>Data</label><input type="date" id="f_date" value="'+dval+'" min="'+TODAY+'"></div>'
-      +'<div class="field"><label>Ora</label><span id="f_timeWrap">'+timeSelect('f_time','',dval)+'</span></div></div>'
+      +'<div class="field" style="margin-top:8px"><label>Nume client</label><input id="f_nm" placeholder="ex. Gheorghe Popa" value="'+esc(D.nm||'')+'"></div>'
+      +'<div class="row2"><div class="field"><label>Nr. înmatriculare</label><input id="f_pl" placeholder="VN 10 ABC" value="'+esc(D.pl||'')+'"></div>'
+      +'<div class="field"><label>Telefon</label><input id="f_ph" inputmode="tel" placeholder="07xx xxx xxx" value="'+esc(D.ph||'')+'"></div></div>'
+      +'<div class="field"><label>Mașină</label><input id="f_car" placeholder="ex. Dacia Logan" value="'+esc(D.car||'')+'"></div>'
+      +'<div class="row2"><div class="field"><label>Data</label><input type="date" id="f_date" value="'+dv+'" min="'+TODAY+'"></div>'
+      +'<div class="field"><label>Ora</label><span id="f_timeWrap" style="display:block">'+timeSelect('f_time',D.time||'',dv)+'</span></div></div>'
       +'<button class="btn primary full" id="f_save" style="margin-top:18px">'+svg('plus',18)+'Adaugă programarea</button>');
-    var _dEl=$('#f_date');if(_dEl)_dEl.addEventListener('change',function(){var w=$('#f_timeWrap');if(w)w.innerHTML=timeSelect('f_time','',this.value||TODAY);});
+    function saveDraft(){S.draftNew={nm:$('#f_nm').value,pl:$('#f_pl').value,ph:$('#f_ph').value,car:$('#f_car').value,date:$('#f_date').value,time:($('#f_time')||{}).value||''};}
+    function bindTime(){var t=$('#f_time');if(t)t.addEventListener('change',saveDraft);}
+    bindTime();
+    var _dEl=$('#f_date');if(_dEl)_dEl.addEventListener('change',function(){var w=$('#f_timeWrap');if(w)w.innerHTML=timeSelect('f_time','',this.value||TODAY);bindTime();saveDraft();});
+    ['f_nm','f_pl','f_ph','f_car'].forEach(function(id){var e=$('#'+id);if(e)e.addEventListener('input',saveDraft);});
     $('#f_save').addEventListener('click',function(){
       var dt=$('#f_date').value||TODAY;
       var tm=($('#f_time').value||'').trim();
@@ -1117,14 +1125,31 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       var nm=$('#f_nm').value.trim()||'Client nou';
       var a={id:Date.now(),date:dt,time:tm,nm:nm,car:$('#f_car').value.trim()||'—',plate:$('#f_pl').value.trim()||'—',phone:$('#f_ph').value.trim()||'—',status:'asteptare'};
       S.appts.push(a);
+      S.draftNew=null;
       S.calSel=dt;S.calY=+dt.slice(0,4);S.calM=+dt.slice(5,7)-1;
       closeSheet();render();
-      if(window.__inspectoWrite&&window.__inspectoWrite.saveAppointment){toast('Se salvează…','clock');window.__inspectoWrite.saveAppointment(a).then(function(r){if(r&&r.error){toast('Eroare la salvare: '+r.error,'shield')}else{if(r&&r.id)a.dbid=r.id;toast('Programare salvată')}});}
+      if(window.__inspectoWrite&&window.__inspectoWrite.saveAppointment){toast('Se salvează…','clock');window.__inspectoWrite.saveAppointment(a).then(function(r){if(r&&r.error){toast('Eroare la salvare: '+r.error,'shield')}else{if(r&&r.id){a.dbid=r.id;if(window.__inspectoRT&&window.__inspectoRT.sendAppt)window.__inspectoRT.sendAppt();}toast('Programare salvată')}});}
       else{toast('Programare adăugată');}
     });
     bindPhone($('#f_ph'));
     var _ord=['f_nm','f_pl','f_ph','f_car','f_date','f_time'];_ord.forEach(function(id,ix){var e=$('#'+id);if(!e)return;e.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();var nx=_ord[ix+1],ne=nx?$('#'+nx):null;if(ne)ne.focus();else $('#f_save').click();}});});
     var db=$('#f_dict');if(db)db.addEventListener('click',function(){toggleDictation(db,$('#f_dictS'));});
+    var cb=$('#f_contacts');if(cb)cb.addEventListener('click',function(){pickContact(saveDraft);});
+  }
+  async function pickContact(after){
+    var C=(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Contacts)||null;
+    if(!C){toast('Contactele sunt disponibile doar în aplicație','user');return;}
+    try{
+      try{await C.requestPermissions();}catch(e){}
+      var res=await C.pickContact({projection:{name:true,phones:true}});
+      var c=res&&res.contact; if(!c){return;}
+      var nm=(c.name&&(c.name.display||((c.name.given||'')+' '+(c.name.family||'')).trim()))||'';
+      var ph=(c.phones&&c.phones[0]&&(c.phones[0].number||c.phones[0].value))||'';
+      if(nm){var e=$('#f_nm');if(e)e.value=nm;}
+      if(ph){var p=$('#f_ph');if(p){p.value=ph;p.dispatchEvent(new Event('input'));}}
+      if(after)after();
+      toast('Contact adăugat','user');
+    }catch(e){ toast('Nu s-a putut accesa contactul','shield'); }
   }
   function sheetAppt(id){
     var a=S.appts.filter(function(x){return x.id==id})[0];if(!a)return;
@@ -1267,16 +1292,18 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
     return saveBlob(filename,blob);
   }
   function urlToBlob(u){var a=u.split(','),m=(a[0].match(/:(.*?);/)||[])[1]||'image/jpeg',b=atob(a[1]),n=b.length,ar=new Uint8Array(n);while(n--)ar[n]=b.charCodeAt(n);return new Blob([ar],{type:m});}
+  async function urlToBlobAsync(u){if(!u)return null;if(/^data:/.test(u)){try{return urlToBlob(u);}catch(e){return null;}}try{var r=await fetch(u,{mode:'cors'});if(!r.ok)return null;return await r.blob();}catch(e){return null;}}
   async function zipDownload(sets){
     if(typeof JSZip==='undefined'){toast('Biblioteca ZIP nu s-a încărcat');return}
     var mn=['January','February','March','April','May','June','July','August','September','October','November','December'];
     toast('Se pregătește arhiva…','down');
-    var zip=new JSZip();
-    sets.forEach(function(s){
+    var zip=new JSZip(); var added=0;
+    for(var si=0;si<sets.length;si++){ var s=sets[si];
       var dp=s.date.split('-');var dd=dp[2]+'.'+dp[1]+'.'+dp[0];var my=mn[+dp[1]-1]+' '+dp[0];
       var fo=zip.folder(my).folder(dd);var plate=(s.plate||'NO_PLATE').replace(/\s+/g,'');var cnt=setCount(s);
-      for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);fo.file(plate+'_'+(i+1)+'.jpg',url.split(',')[1],{base64:true});}
-    });
+      for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);if(!url)continue;var b=await urlToBlobAsync(url);if(!b)continue;fo.file(plate+'_'+(i+1)+'.jpg',b);added++;}
+    }
+    if(!added){toast('Nu s-au putut descărca pozele','shield');return;}
     try{var blob=await zip.generateAsync({type:'blob'});await dlSave('inspectii_'+phFrom+'_'+phTo+'.zip',blob);}
     catch(e){toast('Descărcare anulată')}
   }
@@ -1292,7 +1319,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       try{
         for(var si=0;si<sets.length;si++){var s=sets[si];var dp=s.date.split('-');var dd=dp[2]+'.'+dp[1]+'.'+dp[0];var plate=(s.plate||'NO_PLATE').replace(/\s+/g,'');var cnt=setCount(s);
           var dayFolder=await dir.getDirectoryHandle(dd,{create:true});
-          for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);if(!url)continue;var fh=await dayFolder.getFileHandle(plate+'_'+(i+1)+'.jpg',{create:true});var w=await fh.createWritable();await w.write(urlToBlob(url));await w.close();count++;}
+          for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);if(!url)continue;var ib=await urlToBlobAsync(url);if(!ib)continue;var fh=await dayFolder.getFileHandle(plate+'_'+(i+1)+'.jpg',{create:true});var w=await fh.createWritable();await w.write(ib);await w.close();count++;}
         }
       }catch(e){failed=true;}
       if(failed||count===0){toast('Nu s-a putut scrie în folder — descarc ZIP','down');return zipDownload(sets);}
@@ -1904,7 +1931,7 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       render();
     },
     setReadonly:function(on){document.body.classList.toggle('readonly',!!on)},
-    setUser:function(em){S.userEmail=em||'';render();},
+    setUser:function(em){S.userEmail=em||'';},
     onScan:function(p){if(!p)return;var o=S.ocr;o._muteRT=true;if(p.mode)o.mode=p.mode;['civ','vin','nume','prenume','serie'].forEach(function(k){if(typeof p[k]==='string'&&p[k]){o[k]=p[k];o[k+'Copied']=false;if(k==='civ'||k==='vin')o[k+'Src']='telefon';}});o._lastRT=ocrSnap();renderOcr();o._muteRT=false;toast('Primit de pe telefon','sms');},
     onPhoto:function(p){if(!p||!p.url)return;var set=null;for(var i=0;i<S.savedPhotos.length;i++){var s=S.savedPhotos[i];if(s.plate===p.plate&&s.date===p.date){set=s;break;}}if(!set){set={date:p.date,plate:p.plate,imgs:[]};S.savedPhotos.push(set);}if(!set.imgs)set.imgs=[];var idx=(p.index||set.imgs.length+1)-1;set.imgs[idx]=p.url;renderPhotos();toast('Poză primită de pe telefon','cam');}
   };
