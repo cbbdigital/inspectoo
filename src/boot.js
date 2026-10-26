@@ -80,7 +80,16 @@ async function pushUser(){
 }
 
 /* ---- Sincronizare live telefon ↔ desktop (Realtime Broadcast, fără DB) ---- */
-let _rtChannel = null;
+let _rtChannel = null, _stChannel = null, _apptReloadT = null;
+function PROVIDER_ID(){ return (INSPECTOR && INSPECTOR.service_provider_id) || AUTH_UID; }
+async function reloadAppts(){
+  try{
+    const a = await fetchAppointments(sb);
+    if(!a.error && window.InspectoApp && window.InspectoApp.applyData) window.InspectoApp.applyData({ appts:a.data });
+  }catch(e){}
+}
+function _apptChanged(){ clearTimeout(_apptReloadT); _apptReloadT = setTimeout(reloadAppts, 400); } // debounce
+function _bcastAppt(){ try{ if(window.__inspectoRT && window.__inspectoRT.sendAppt) window.__inspectoRT.sendAppt(); }catch(e){} }
 function setupRealtime(){
   try{
     if(!INSPECTOR || !INSPECTOR.id || _rtChannel) return;
@@ -93,8 +102,21 @@ function setupRealtime(){
     });
     ch.subscribe();
     _rtChannel = ch;
+
+    // Canal pe stație (provider) pentru sincronizarea programărilor între toate dispozitivele stației
+    const pid = PROVIDER_ID();
+    if(pid){
+      const st = sb.channel('station:'+pid, { config:{ broadcast:{ self:false } } });
+      st.on('broadcast', { event:'appt' }, function(){ _apptChanged(); });
+      // Dacă Realtime e activat pe tabel, prindem și schimbările direct din DB
+      st.on('postgres_changes', { event:'*', schema:'public', table:'appointments', filter:'user_id=eq.'+pid }, function(){ _apptChanged(); });
+      st.subscribe();
+      _stChannel = st;
+    }
+
     window.__inspectoRT = {
-      send: function(payload){ try{ ch.send({ type:'broadcast', event:'ocr', payload:payload }); }catch(e){} }
+      send: function(payload){ try{ ch.send({ type:'broadcast', event:'ocr', payload:payload }); }catch(e){} },
+      sendAppt: function(){ try{ if(_stChannel) _stChannel.send({ type:'broadcast', event:'appt', payload:{ t:Date.now() } }); }catch(e){} }
     };
   }catch(e){}
 }
@@ -159,12 +181,14 @@ window.__inspectoWrite = {
         const { error } = await sb.from('appointments')
           .update({ status:'cancelled', updated_at:new Date().toISOString() })
           .eq('id', appointmentId);
+        if(!error) _bcastAppt();
         return { error: error && (error.message||String(error)) };
       }
       const upd = { status:'completed', result:act, updated_at:new Date().toISOString() };
       upd.tpi_type = (act === 'failed') ? null : tpiType;
       const { error } = await sb.from('appointments').update(upd).eq('id', appointmentId);
       if(error) return { error: error.message||String(error) };
+      _bcastAppt();
       // SMS pe loc, exact ca aplicația veche (funcția edge existentă trimite + programează reminderul din tpi_type)
       let sms = false;
       try{
@@ -210,6 +234,7 @@ window.__inspectoWrite = {
         tpi_type:null, status:'scheduled' };
       var r=await sb.from('appointments').insert(row).select('id').maybeSingle();
       if(r.error) return { error:r.error.message };
+      _bcastAppt();
       return { error:null, id:r.data&&r.data.id };
     }catch(e){ return { error:e.message||String(e) }; }
   },
@@ -226,13 +251,14 @@ window.__inspectoWrite = {
       var smap={azi:'confirmed',asteptare:'scheduled',finalizat:'completed'};
       if(a.status&&smap[a.status]) patch.status=smap[a.status];
       var r=await sb.from('appointments').update(patch).eq('id',id);
+      if(!r.error) _bcastAppt();
       return { error: r.error && r.error.message };
     }catch(e){ return { error:e.message||String(e) }; }
   },
   // Ștergere programare → DELETE appointments
   async deleteAppointment(id){
     if(!id) return { error:'Lipsește programarea' };
-    try{ var r=await sb.from('appointments').delete().eq('id',id); return { error:r.error&&r.error.message }; }
+    try{ var r=await sb.from('appointments').delete().eq('id',id); if(!r.error) _bcastAppt(); return { error:r.error&&r.error.message }; }
     catch(e){ return { error:e.message||String(e) }; }
   },
   // Ștergere client manual → DELETE manual_clients
@@ -374,8 +400,9 @@ function showLogin(){
   const LOGO='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><path d="M16.77 4.37 A9 9 0 1 0 20.34 8.63"/><path d="M8 12.4l3.2 3.2 9.2-10.4"/></svg>';
   const wrap=document.createElement('div');
   wrap.id='loginWrap';
-  wrap.style.cssText='position:fixed;inset:0;z-index:90;background:var(--app);color:var(--fg);font-family:var(--font-b);display:flex;flex-direction:column;'
-    +'padding:calc(env(safe-area-inset-top,0px) + 26px) max(22px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 22px) max(22px,env(safe-area-inset-right,0px))';
+  wrap.style.cssText='position:fixed;inset:0;z-index:90;background:var(--app);color:var(--fg);font-family:var(--font-b);display:flex;justify-content:center;align-items:stretch;overflow-y:auto';
+  const PANEL='width:100%;max-width:400px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;'
+    +'padding:calc(env(safe-area-inset-top,0px) + 26px) max(22px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 26px) max(22px,env(safe-area-inset-right,0px))';
 
   function logoBlock(sz,big){return '<div style="width:'+sz+'px;height:'+sz+'px;border-radius:'+Math.round(sz*0.28)+'px;background:var(--accent);display:grid;place-items:center'+(big?';box-shadow:0 20px 44px -18px var(--accent)':'')+'"><span style="width:'+Math.round(sz*0.5)+'px;height:'+Math.round(sz*0.5)+'px;display:grid;place-items:center">'+LOGO+'</span></div>';}
 
@@ -408,13 +435,13 @@ function showLogin(){
   }
 
   function mountWelcome(){
-    wrap.innerHTML=welcomeHTML();
+    wrap.innerHTML='<div style="'+PANEL+'">'+welcomeHTML()+'</div>';
     wrap.querySelector('#lg_signup').onclick=function(){ try{ window.open('https://inspectoo.ro','_blank'); }catch(e){ try{ window.location.assign('https://inspectoo.ro'); }catch(_){} } };
     wrap.querySelector('#lg_loginBtn').onclick=mountForm;
     wrap.querySelector('#lg_demo').onclick=function(){ doLogin('demo1@inspecto.ro','Demo123!', this, 'Se încarcă demo…'); };
   }
   function mountForm(){
-    wrap.innerHTML=formHTML();
+    wrap.innerHTML='<div style="'+PANEL+'">'+formHTML()+'</div>';
     wrap.querySelector('#lg_back').onclick=mountWelcome;
     wrap.querySelector('#lg_go').onclick=function(){ doLogin(wrap.querySelector('#lg_em').value.trim(), wrap.querySelector('#lg_pw').value, this, 'Se conectează…'); };
     ['lg_em','lg_pw'].forEach(function(id){ var e=wrap.querySelector('#'+id); if(e)e.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); wrap.querySelector('#lg_go').click(); } }); });
