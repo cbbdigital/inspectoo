@@ -1303,18 +1303,19 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
       var fo=zip.folder(my).folder(dd);var plate=(s.plate||'NO_PLATE').replace(/\s+/g,'');var cnt=setCount(s);
       for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);if(!url)continue;var b=await urlToBlobAsync(url);if(!b)continue;fo.file(plate+'_'+(i+1)+'.jpg',b);added++;}
     }
-    if(!added){toast('Nu s-au putut descărca pozele','shield');return;}
-    try{var blob=await zip.generateAsync({type:'blob'});await dlSave('inspectii_'+phFrom+'_'+phTo+'.zip',blob);}
-    catch(e){toast('Descărcare anulată')}
+    if(!added){toast('Nu s-au putut descărca pozele','shield');return false;}
+    try{var blob=await zip.generateAsync({type:'blob'});var ok=await dlSave('inspectii_'+phFrom+'_'+phTo+'.zip',blob);return ok!==false;}
+    catch(e){toast('Descărcare anulată');return false;}
   }
   async function downloadAll(){
     var sets=S.savedPhotos.filter(function(s){return (!phFrom||s.date>=phFrom)&&(!phTo||s.date<=phTo)});
     if(!sets.length){toast('Nicio poză în interval');return}
+    var ok=false;
     // Folder (ca aplicația veche). Chrome blochează Desktop/Documente/Downloads → fallback ZIP.
     if(window.showDirectoryPicker){
       var dir;
       try{dir=await window.showDirectoryPicker({mode:'readwrite'});}
-      catch(e){ if(e&&e.name==='AbortError'){toast('Folder refuzat — descarc ZIP','down');return zipDownload(sets);} toast('Descărcare anulată');return; }
+      catch(e){ if(e&&e.name==='AbortError'){toast('Folder refuzat — descarc ZIP','down');ok=await zipDownload(sets);if(ok)afterDownload(sets);return;} toast('Descărcare anulată');return; }
       toast('Se salvează în folder…','down');var count=0,failed=false;
       try{
         for(var si=0;si<sets.length;si++){var s=sets[si];var dp=s.date.split('-');var dd=dp[2]+'.'+dp[1]+'.'+dp[0];var plate=(s.plate||'NO_PLATE').replace(/\s+/g,'');var cnt=setCount(s);
@@ -1322,10 +1323,26 @@ body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-ar
           for(var i=0;i<cnt;i++){var url=s.imgs?s.imgs[i]:placeholderImg(s.plate||'NO_PLATE',dd,i+1);if(!url)continue;var ib=await urlToBlobAsync(url);if(!ib)continue;var fh=await dayFolder.getFileHandle(plate+'_'+(i+1)+'.jpg',{create:true});var w=await fh.createWritable();await w.write(ib);await w.close();count++;}
         }
       }catch(e){failed=true;}
-      if(failed||count===0){toast('Nu s-a putut scrie în folder — descarc ZIP','down');return zipDownload(sets);}
-      toast(count+' poze salvate în folder','check');return;
+      if(failed||count===0){toast('Nu s-a putut scrie în folder — descarc ZIP','down');ok=await zipDownload(sets);}
+      else{toast(count+' poze salvate în folder','check');ok=true;}
+    } else {
+      ok=await zipDownload(sets);
     }
-    return zipDownload(sets);
+    if(ok)afterDownload(sets);
+  }
+  function afterDownload(sets){
+    openSheet('<h3>Șterg pozele descărcate?</h3><div class="muted" style="font-size:13px">Pozele descărcate vor fi eliminate din aplicație și din stocare. Acțiunea nu poate fi anulată.</div>'
+      +'<button class="btn full" id="dp_yes" style="margin-top:16px;background:var(--bad);color:#fff">'+svg('trash',18)+'Șterge pozele descărcate</button>'
+      +'<button class="btn ghost full" id="dp_no" style="margin-top:10px">Păstrează-le</button>');
+    $('#dp_no').addEventListener('click',closeSheet);
+    $('#dp_yes').addEventListener('click',async function(){
+      var btn=this;btn.disabled=true;btn.textContent='Se șterge…';
+      var r=(window.__inspectoWrite&&window.__inspectoWrite.deletePhotos)?await window.__inspectoWrite.deletePhotos(sets):{error:'Indisponibil'};
+      if(r&&r.error){toast('Eroare la ștergere: '+r.error,'shield');btn.disabled=false;btn.textContent='Șterge pozele descărcate';return;}
+      var ks={};sets.forEach(function(s){ks[(s.plate||'')+'|'+s.date]=1;});
+      S.savedPhotos=S.savedPhotos.filter(function(s){return !ks[(s.plate||'')+'|'+s.date];});
+      closeSheet();render();toast('Poze șterse','check');
+    });
   }
   function openPhotoEditor(si, ii){
     var set=S.savedPhotos[si]; if(!set||!set.imgs||!set.imgs[ii])return;
