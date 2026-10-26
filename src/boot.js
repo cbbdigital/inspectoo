@@ -270,6 +270,30 @@ window.__inspectoWrite = {
       var r=await q; return { error:r.error&&r.error.message };
     }catch(e){ return { error:e.message||String(e) }; }
   },
+  // Ștergere poze descărcate (storage + rânduri inspection_photos)
+  async deletePhotos(sets){
+    if(!sets || !sets.length) return { error:'Nimic de șters' };
+    try{
+      // 1) șterge fișierele din storage (din URL-urile publice)
+      var paths=[];
+      sets.forEach(function(s){ (s.imgs||[]).forEach(function(u){ if(!u) return; var m=String(u).split('/object/public/inspection-photos/')[1]; if(m){ try{ paths.push(decodeURIComponent(m.split('?')[0])); }catch(e){ paths.push(m.split('?')[0]); } } }); });
+      if(paths.length){ try{ await sb.storage.from('inspection-photos').remove(paths); }catch(e){} }
+      // 2) șterge rândurile din DB
+      var ids=sets.map(function(s){return s.id;}).filter(Boolean);
+      if(ids.length){
+        var r=await sb.from('inspection_photos').delete().in('id', ids);
+        if(r.error) return { error:r.error.message };
+      } else {
+        for(var i=0;i<sets.length;i++){ var s=sets[i];
+          var plate=String(s.plate||'').replace(/\s+/g,'').toUpperCase();
+          var q=sb.from('inspection_photos').delete().eq('license_plate',plate).eq('inspection_date',s.date);
+          if(s.appointmentId) q=q.eq('appointment_id',s.appointmentId); else q=q.is('appointment_id',null);
+          var rr=await q; if(rr.error) return { error:rr.error.message };
+        }
+      }
+      return { error:null };
+    }catch(e){ return { error:e.message||String(e) }; }
+  },
   // Salvare setări stație (Date stație + Configurare SMS) → rândul providerului, prin RPC securizat
   async saveSettings(s){
     try{

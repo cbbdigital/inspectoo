@@ -57,7 +57,7 @@ export const map = {
   }),
   photoFromRow: (r) => {
     const imgs=[]; for(let i=1;i<=10;i++) if(r['photo_'+i+'_url']) imgs.push(r['photo_'+i+'_url']);
-    return { date:r.inspection_date||'', plate:r.license_plate||'', appointmentId:r.appointment_id||null, n:imgs.length, imgs };
+    return { id:r.id||null, date:r.inspection_date||'', plate:r.license_plate||'', appointmentId:r.appointment_id||null, n:imgs.length, imgs };
   },
 };
 
